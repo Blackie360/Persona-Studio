@@ -111,10 +111,10 @@ export function ImageCombiner() {
 
   const promptTextareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
-  }
+  }, [])
 
   const {
     image1,
