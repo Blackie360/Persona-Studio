@@ -166,7 +166,6 @@ export function ImageCombiner() {
     addGeneration,
     onToast: showToast,
     onImageUpload: handleImageUpload,
-    onOutOfCredits: () => {},
     avatarStyle,
     background,
     colorMood,
@@ -179,7 +178,7 @@ export function ImageCombiner() {
       ? { url: selectedGeneration.imageUrl, prompt: selectedGeneration.prompt }
       : null
 
-  const hasImages = useUrls ? image1Url : image1
+  const hasImages = useUrls ? !!image1Url : !!image1
   const completedCount = persistedGenerations.filter((g) => g.status === "complete").length
   const canGenerate = hasImages && completedCount < 2
 
@@ -779,7 +778,7 @@ export function ImageCombiner() {
 
               <GenerationHistory
                 generations={persistedGenerations}
-                selectedId={selectedGenerationId}
+                selectedId={selectedGenerationId ?? undefined}
                 onSelect={setSelectedGenerationId}
                 onCancel={cancelGeneration}
                 onDelete={deleteGeneration}
@@ -878,7 +877,7 @@ export function ImageCombiner() {
 
               <GenerationHistory
                 generations={persistedGenerations}
-                selectedId={selectedGenerationId}
+                selectedId={selectedGenerationId ?? undefined}
                 onSelect={setSelectedGenerationId}
                 onCancel={cancelGeneration}
                 onDelete={deleteGeneration}
@@ -905,8 +904,6 @@ export function ImageCombiner() {
         isOpen={showFullscreen}
         imageUrl={fullscreenImageUrl}
         onClose={closeFullscreen}
-        onNavigate={handleFullscreenNavigate}
-        hasMultiple={persistedGenerations.filter((g) => g.status === "complete" && g.imageUrl).length > 1}
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
