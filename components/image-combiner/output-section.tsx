@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useRef, useEffect } from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -25,9 +26,9 @@ interface OutputSectionProps {
 function ShimmerSkeleton() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative w-full h-full max-w-md max-h-md m-8 overflow-hidden rounded-lg bg-gray-900/50">
+      <div className="relative w-full h-full max-w-md max-h-md m-8 overflow-hidden rounded-lg bg-muted/50">
         {/* Base skeleton */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-800/50 to-gray-900/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/50" />
 
         {/* Shimmer effect */}
         <motion.div
@@ -75,7 +76,7 @@ function ShimmerSkeleton() {
             ))}
           </motion.div>
           <motion.p
-            className="text-sm text-gray-400 font-medium"
+            className="text-sm text-muted-foreground font-medium"
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
           >
@@ -101,6 +102,22 @@ export function OutputSection({
   onLoadAsInput,
 }: OutputSectionProps) {
   const isMobile = useMobile()
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to image when it finishes loading on mobile
+  useEffect(() => {
+    if (isMobile && imageLoaded && generatedImage && containerRef.current) {
+      // Small delay to ensure the image is fully rendered
+      const timeoutId = setTimeout(() => {
+        containerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        })
+      }, 100)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [isMobile, imageLoaded, generatedImage])
 
   const AnimatedButton = ({
     onClick,
@@ -121,7 +138,7 @@ export function OutputSection({
         disabled={disabled}
         variant="outline"
         size="sm"
-        className="text-xs h-7 px-2 md:px-3 bg-transparent border-gray-600 text-white hover:bg-gray-700 flex items-center gap-1 lg:bg-black/80 lg:backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
+        className="text-xs h-7 px-2 md:px-3 bg-transparent border-border text-foreground hover:bg-accent flex items-center gap-1 lg:bg-background/80 lg:backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
         title={title}
       >
         {icon}
@@ -175,7 +192,7 @@ export function OutputSection({
   )
 
   return (
-    <div className="flex flex-col h-full min-h-0 select-none relative group/output">
+    <div ref={containerRef} className="flex flex-col h-full min-h-0 select-none relative group/output">
       <div className="relative flex-1 min-h-0 flex flex-col">
         <AnimatePresence mode="wait">
           {isLoading ? (
@@ -198,10 +215,24 @@ export function OutputSection({
               transition={{ duration: 0.35, ease: "easeOut" }}
             >
               <div className="flex-1 flex items-center justify-center relative group max-w-full max-h-full overflow-hidden">
+                {/* Hover overlay hint */}
+                <div className="absolute inset-0 bg-background/0 group-hover:bg-background/5 transition-colors duration-200 rounded-lg pointer-events-none z-10 flex items-center justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileHover={{ opacity: 1, y: 0 }}
+                    className="bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 text-xs text-muted-foreground pointer-events-none hidden group-hover:block"
+                  >
+                    Click to view fullscreen
+                  </motion.div>
+                </div>
                 <motion.img
                   src={generatedImage.url || "/placeholder.svg"}
-                  alt="Generated"
-                  className={cn("max-w-full max-h-full cursor-pointer", "lg:w-full lg:h-full lg:object-contain")}
+                  alt="Generated avatar image"
+                  className={cn(
+                    "max-w-full max-h-full cursor-pointer transition-transform duration-200",
+                    "lg:w-full lg:h-full lg:object-contain",
+                    "group-hover:scale-[1.02] group-hover:shadow-2xl"
+                  )}
                   initial={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
                   animate={{
                     opacity: imageLoaded ? 1 : 0,
@@ -211,6 +242,8 @@ export function OutputSection({
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   onLoad={() => setImageLoaded(true)}
                   onClick={onFullscreen}
+                  loading="lazy"
+                  draggable={false}
                 />
               </div>
             </motion.div>
@@ -218,15 +251,15 @@ export function OutputSection({
             // Empty state
             <motion.div
               key="empty"
-              className="absolute inset-0 flex items-center justify-center text-center py-6 select-none bg-black/20"
+              className="absolute inset-0 flex items-center justify-center text-center py-6 select-none bg-background/20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
               <div>
-                <div className="w-8 h-8 md:w-16 md:h-16 mx-auto mb-3 border border-gray-600 flex items-center justify-center bg-black/50">
+                <div className="w-8 h-8 md:w-16 md:h-16 mx-auto mb-3 border border-border flex items-center justify-center bg-background/50">
                   <svg
-                    className="w-4 h-4 md:w-8 md:h-8 text-gray-400"
+                    className="w-4 h-4 md:w-8 md:h-8 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -236,7 +269,7 @@ export function OutputSection({
                     <polyline points="21,15 16,10 5,21" />
                   </svg>
                 </div>
-                <p className="text-xs text-gray-400 font-medium py-1 md:py-2">Ready to generate</p>
+                <p className="text-xs text-muted-foreground font-medium py-1 md:py-2">Ready to generate</p>
               </div>
             </motion.div>
           )}
