@@ -1,0 +1,854 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect, useRef, useCallback, memo } from "react"
+import { Dithering } from "@paper-design/shaders-react"
+import { useMobile } from "@/hooks/use-mobile"
+import { useImageUpload } from "./hooks/use-image-upload"
+import { useImageGeneration } from "./hooks/use-image-generation"
+import { useAspectRatio } from "./hooks/use-aspect-ratio"
+import { HowItWorksModal } from "./how-it-works-modal"
+import { usePersistentHistory } from "./hooks/use-persistent-history"
+import { InputSection } from "./input-section"
+import { OutputSection } from "./output-section"
+import { ToastNotification } from "./toast-notification"
+import { GenerationHistory } from "./generation-history"
+import { GlobalDropZone } from "./global-drop-zone"
+import { FullscreenViewer } from "./fullscreen-viewer"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ApiKeyWarning } from "@/components/api-key-warning"
+
+const MemoizedDithering = memo(Dithering)
+
+export function ImageCombiner() {
+  const isMobile = useMobile()
+  const [prompt, setPrompt] = useState("")
+  const [avatarStyle, setAvatarStyle] = useState("linkedin")
+  const [background, setBackground] = useState("studio-neutral")
+  const [colorMood, setColorMood] = useState("natural")
+  const [useUrls, setUseUrls] = useState(false)
+  const [showFullscreen, setShowFullscreen] = useState(false)
+  const [fullscreenImageUrl, setFullscreenImageUrl] = useState("")
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [dragCounter, setDragCounter] = useState(0)
+  const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const [logoLoaded, setLogoLoaded] = useState(false)
+  const [apiKeyMissing, setApiKeyMissing] = useState(false)
+
+  const [leftWidth, setLeftWidth] = useState(50)
+  const [isResizing, setIsResizing] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const {
+    image1,
+    image1Preview,
+    image1Url,
+    image2,
+    image2Preview,
+    image2Url,
+    isConvertingHeic,
+    heicProgress,
+    handleImageUpload,
+    handleUrlChange,
+    clearImage,
+    showToast: uploadShowToast,
+  } = useImageUpload()
+
+  const { aspectRatio, setAspectRatio, availableAspectRatios, detectAspectRatio } = useAspectRatio()
+
+  const {
+    generations: persistedGenerations,
+    setGenerations: setPersistedGenerations,
+    addGeneration,
+    clearHistory,
+    deleteGeneration,
+    isLoading: historyLoading,
+    hasMore,
+    loadMore,
+    isLoadingMore,
+  } = usePersistentHistory(showToast)
+
+  const {
+    selectedGenerationId,
+    setSelectedGenerationId,
+    imageLoaded,
+    setImageLoaded,
+    generateImage: runGeneration,
+    cancelGeneration,
+    loadGeneratedAsInput,
+  } = useImageGeneration({
+    prompt,
+    aspectRatio,
+    image1,
+    image2,
+    image1Url,
+    image2Url,
+    useUrls,
+    generations: persistedGenerations,
+    setGenerations: setPersistedGenerations,
+    addGeneration,
+    onToast: showToast,
+    onImageUpload: handleImageUpload,
+    onOutOfCredits: () => {},
+    onApiKeyMissing: () => setApiKeyMissing(true),
+    avatarStyle,
+    background,
+    colorMood,
+  })
+
+  const selectedGeneration = persistedGenerations.find((g) => g.id === selectedGenerationId) || persistedGenerations[0]
+  const isLoading = persistedGenerations.some((g) => g.status === "loading")
+  const generatedImage =
+    selectedGeneration?.status === "complete" && selectedGeneration.imageUrl
+      ? { url: selectedGeneration.imageUrl, prompt: selectedGeneration.prompt }
+      : null
+
+  const hasImages = useUrls ? image1Url : image1
+  const canGenerate = hasImages ? true : false
+
+  useEffect(() => {
+    if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
+      setImageLoaded(false)
+    }
+  }, [selectedGenerationId, selectedGeneration?.imageUrl, setImageLoaded])
+
+  useEffect(() => {
+    uploadShowToast.current = showToast
+  }, [uploadShowToast])
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        const response = await fetch("/api/check-api-key")
+        const data = await response.json()
+        if (!data.configured) {
+          setApiKeyMissing(true)
+        }
+      } catch (error) {
+        console.error("Error checking API key:", error)
+      }
+    }
+
+    checkApiKey()
+  }, [])
+
+  const openFullscreen = useCallback(() => {
+    if (generatedImage?.url) {
+      setFullscreenImageUrl(generatedImage.url)
+      setShowFullscreen(true)
+      document.body.style.overflow = "hidden"
+    }
+  }, [generatedImage?.url])
+
+  const openImageFullscreen = useCallback((imageUrl: string) => {
+    setFullscreenImageUrl(imageUrl)
+    setShowFullscreen(true)
+    document.body.style.overflow = "hidden"
+  }, [])
+
+  const closeFullscreen = useCallback(() => {
+    setShowFullscreen(false)
+    setFullscreenImageUrl("")
+    document.body.style.overflow = "unset"
+  }, [])
+
+  const downloadImage = useCallback(async () => {
+    if (!generatedImage) return
+    try {
+      const response = await fetch(generatedImage.url)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `avatar-${avatarStyle}-result.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error downloading image:", error)
+      window.open(generatedImage.url, "_blank")
+    }
+  }, [generatedImage, avatarStyle])
+
+  const openImageInNewTab = useCallback(() => {
+    if (!generatedImage?.url) {
+      console.error("No image URL available")
+      return
+    }
+
+    try {
+      if (generatedImage.url.startsWith("data:")) {
+        const parts = generatedImage.url.split(",")
+        const mime = parts[0].match(/:(.*?);/)?.[1] || "image/png"
+        const bstr = atob(parts[1])
+        const n = bstr.length
+        const u8arr = new Uint8Array(n)
+        for (let i = 0; i < n; i++) {
+          u8arr[i] = bstr.charCodeAt(i)
+        }
+        const blob = new Blob([u8arr], { type: mime })
+        const blobUrl = URL.createObjectURL(blob)
+        const newWindow = window.open(blobUrl, "_blank", "noopener,noreferrer")
+        if (newWindow) {
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000)
+        }
+      } else {
+        window.open(generatedImage.url, "_blank", "noopener,noreferrer")
+      }
+    } catch (error) {
+      console.error("Error opening image:", error)
+      window.open(generatedImage.url, "_blank")
+    }
+  }, [generatedImage])
+
+  const copyImageToClipboard = useCallback(async () => {
+    if (!generatedImage) return
+    try {
+      const convertToPngBlob = async (imageUrl: string): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = "anonymous"
+
+          img.onload = () => {
+            const canvas = document.createElement("canvas")
+            canvas.width = img.width
+            canvas.height = img.height
+            const ctx = canvas.getContext("2d")
+
+            if (!ctx) {
+              reject(new Error("Failed to get canvas context"))
+              return
+            }
+
+            ctx.drawImage(img, 0, 0)
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  resolve(blob)
+                } else {
+                  reject(new Error("Failed to convert to blob"))
+                }
+              },
+              "image/png",
+              1.0,
+            )
+          }
+
+          img.onerror = () => reject(new Error("Failed to load image"))
+          img.src = imageUrl
+        })
+      }
+
+      if (isMobile) {
+        try {
+          const pngBlob = await convertToPngBlob(generatedImage.url)
+          const clipboardItem = new ClipboardItem({ "image/png": pngBlob })
+          await navigator.clipboard.write([clipboardItem])
+          setToast({ message: "Image copied to clipboard!", type: "success" })
+          setTimeout(() => setToast(null), 2000)
+          return
+        } catch (clipboardError) {
+          try {
+            const response = await fetch(generatedImage.url)
+            const blob = await response.blob()
+            const reader = new FileReader()
+            reader.onloadend = async () => {
+              try {
+                await navigator.clipboard.writeText(reader.result as string)
+                setToast({ message: "Image data copied! Paste in compatible apps.", type: "success" })
+                setTimeout(() => setToast(null), 3000)
+              } catch (err) {
+                throw new Error("Clipboard not supported")
+              }
+            }
+            reader.readAsDataURL(blob)
+            return
+          } catch (fallbackError) {
+            setToast({
+              message: "Copy not supported. Use download button instead.",
+              type: "error",
+            })
+            setTimeout(() => setToast(null), 3000)
+            return
+          }
+        }
+      }
+
+      setToast({ message: "Copying image...", type: "success" })
+      window.focus()
+
+      const pngBlob = await convertToPngBlob(generatedImage.url)
+      const clipboardItem = new ClipboardItem({ "image/png": pngBlob })
+      await navigator.clipboard.write([clipboardItem])
+
+      setToast({ message: "Image copied to clipboard!", type: "success" })
+      setTimeout(() => setToast(null), 2000)
+    } catch (error) {
+      console.error("Error copying image:", error)
+      if (error instanceof Error && error.message.includes("not focused")) {
+        setToast({
+          message: "Please click on the page first, then try copying again",
+          type: "error",
+        })
+      } else {
+        setToast({ message: "Failed to copy image", type: "error" })
+      }
+      setTimeout(() => setToast(null), 2000)
+    }
+  }, [generatedImage, isMobile])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault()
+        if (canGenerate) {
+          runGeneration()
+        }
+      }
+    },
+    [canGenerate, runGeneration],
+  )
+
+  const handleGlobalKeyboard = useCallback(
+    (e: KeyboardEvent) => {
+      const activeElement = document.activeElement
+      const isTyping = activeElement?.tagName === "TEXTAREA" || activeElement?.tagName === "INPUT"
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "c" && generatedImage && !e.shiftKey) {
+        if (!isTyping) {
+          e.preventDefault()
+          copyImageToClipboard()
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "d" && generatedImage) {
+        if (!isTyping) {
+          e.preventDefault()
+          downloadImage()
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "u" && generatedImage) {
+        if (!isTyping) {
+          e.preventDefault()
+          loadGeneratedAsInput()
+        }
+      }
+      if (e.key === "Escape" && showFullscreen) {
+        closeFullscreen()
+      }
+      if (showFullscreen && (e.key === "ArrowLeft" || e.key === "ArrowRight") && !isTyping) {
+        e.preventDefault()
+        const completedGenerations = persistedGenerations.filter((g) => g.status === "complete" && g.imageUrl)
+        if (completedGenerations.length <= 1) return
+
+        const currentIndex = completedGenerations.findIndex((g) => g.imageUrl === fullscreenImageUrl)
+        if (currentIndex === -1) return
+
+        if (e.key === "ArrowLeft") {
+          const prevIndex = currentIndex === 0 ? completedGenerations.length - 1 : currentIndex - 1
+          setFullscreenImageUrl(completedGenerations[prevIndex].imageUrl!)
+          setSelectedGenerationId(completedGenerations[prevIndex].id)
+        } else if (e.key === "ArrowRight") {
+          const nextIndex = currentIndex === completedGenerations.length - 1 ? 0 : currentIndex + 1
+          setFullscreenImageUrl(completedGenerations[nextIndex].imageUrl!)
+          setSelectedGenerationId(completedGenerations[nextIndex].id)
+        }
+      }
+    },
+    [
+      generatedImage,
+      showFullscreen,
+      copyImageToClipboard,
+      downloadImage,
+      loadGeneratedAsInput,
+      closeFullscreen,
+      persistedGenerations,
+      fullscreenImageUrl,
+      setSelectedGenerationId,
+    ],
+  )
+
+  const handleGlobalPaste = useCallback(
+    async (e: ClipboardEvent) => {
+      const activeElement = document.activeElement
+      if (activeElement?.tagName !== "TEXTAREA" && activeElement?.tagName !== "INPUT") {
+        const items = e.clipboardData?.items
+        if (items) {
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i]
+            if (item.type.startsWith("image/")) {
+              e.preventDefault()
+              const file = item.getAsFile()
+              if (file) {
+                setUseUrls(false)
+                await handleImageUpload(file, 1)
+                showToast("Photo pasted successfully", "success")
+              }
+              return
+            }
+          }
+        }
+
+        const pastedText = e.clipboardData?.getData("text")
+
+        if (!pastedText) return
+
+        const urlPattern = /https?:\/\/[^\s]+/i
+        const imagePattern = /\.(jpg|jpeg|png|gif|webp|bmp|svg)|format=(jpg|jpeg|png|gif|webp)/i
+
+        const match = pastedText.match(urlPattern)
+
+        if (match) {
+          const url = match[0]
+          if (imagePattern.test(url) || url.includes("/media/") || url.includes("/images/")) {
+            e.preventDefault()
+
+            setUseUrls(true)
+
+            setTimeout(() => {
+              handleUrlChange(url, 1)
+              showToast("Image URL pasted", "success")
+            }, 150)
+          }
+        }
+      }
+    },
+    [handleImageUpload, handleUrlChange],
+  )
+
+  const handlePromptPaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const pastedText = e.clipboardData.getData("text")
+
+      const urlPattern = /https?:\/\/[^\s]+/i
+      const imagePattern = /\.(jpg|jpeg|png|gif|webp|bmp|svg)|format=(jpg|jpeg|png|gif|webp)/i
+
+      const match = pastedText.match(urlPattern)
+
+      if (match) {
+        const url = match[0]
+        if (imagePattern.test(url) || url.includes("/media/") || url.includes("/images/")) {
+          e.preventDefault()
+
+          if (!useUrls) {
+            setUseUrls(true)
+          }
+
+          handleUrlChange(url, 1)
+          showToast("Image URL loaded", "success")
+        }
+      }
+    },
+    [useUrls, handleUrlChange],
+  )
+
+  const handleGlobalDragEnter = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    setDragCounter((prev) => prev + 1)
+    const items = e.dataTransfer?.items
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file" && items[i].type.startsWith("image/")) {
+          setIsDraggingOver(true)
+          break
+        }
+      }
+    }
+  }, [])
+
+  const handleGlobalDragOver = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "copy"
+    }
+  }, [])
+
+  const handleGlobalDragLeave = useCallback((e: DragEvent) => {
+    e.preventDefault()
+    setDragCounter((prev) => {
+      const newCount = prev - 1
+      if (newCount <= 0) {
+        setIsDraggingOver(false)
+        return 0
+      }
+      return newCount
+    })
+  }, [])
+
+  const handleGlobalDrop = useCallback(
+    async (e: DragEvent | React.DragEvent, slot?: 1 | 2) => {
+      e.preventDefault()
+      setIsDraggingOver(false)
+      setDragCounter(0)
+      setDropZoneHover(null)
+
+      const files = e.dataTransfer?.files
+      if (files && files.length > 0) {
+        const file = files[0]
+        if (file.type.startsWith("image/")) {
+          setUseUrls(false)
+          await handleImageUpload(file, 1)
+          showToast("Photo uploaded successfully", "success")
+        }
+      }
+    },
+    [handleImageUpload],
+  )
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleGlobalKeyboard)
+    document.addEventListener("paste", handleGlobalPaste)
+    document.addEventListener("dragover", handleGlobalDragOver)
+    document.addEventListener("dragleave", handleGlobalDragLeave)
+    document.addEventListener("dragenter", handleGlobalDragEnter)
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyboard)
+      document.removeEventListener("paste", handleGlobalPaste)
+      document.removeEventListener("dragover", handleGlobalDragOver)
+      document.removeEventListener("dragleave", handleGlobalDragLeave)
+      document.removeEventListener("dragenter", handleGlobalDragEnter)
+    }
+  }, [handleGlobalKeyboard, handleGlobalPaste, handleGlobalDragOver, handleGlobalDragLeave, handleGlobalDragEnter])
+
+  const clearAll = useCallback(() => {
+    setPrompt("")
+    clearImage(1)
+    clearImage(2)
+    setTimeout(() => {
+      promptTextareaRef.current?.focus()
+    }, 0)
+  }, [clearImage])
+
+  const handleFullscreenNavigate = useCallback(
+    (direction: "prev" | "next") => {
+      const completedGenerations = persistedGenerations.filter((g) => g.status === "complete" && g.imageUrl)
+      const currentIndex = completedGenerations.findIndex((g) => g.imageUrl === fullscreenImageUrl)
+      if (currentIndex === -1) return
+
+      let newIndex: number
+      if (direction === "prev") {
+        newIndex = currentIndex === 0 ? completedGenerations.length - 1 : currentIndex - 1
+      } else {
+        newIndex = currentIndex === completedGenerations.length - 1 ? 0 : currentIndex + 1
+      }
+
+      setFullscreenImageUrl(completedGenerations[newIndex].imageUrl!)
+      setSelectedGenerationId(completedGenerations[newIndex].id)
+    },
+    [persistedGenerations, fullscreenImageUrl, setSelectedGenerationId],
+  )
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+  }, [])
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing || !containerRef.current) return
+
+      const container = containerRef.current
+      const containerRect = container.getBoundingClientRect()
+      const offsetX = e.clientX - containerRect.left
+      const percentage = (offsetX / containerRect.width) * 100
+
+      const clampedPercentage = Math.max(30, Math.min(70, percentage))
+      setLeftWidth(clampedPercentage)
+    },
+    [isResizing],
+  )
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const handleDoubleClick = useCallback(() => {
+    setLeftWidth(50)
+  }, [])
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove)
+      document.addEventListener("mouseup", handleMouseUp)
+      document.body.style.cursor = "col-resize"
+      document.body.style.userSelect = "none"
+    } else {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+      document.body.style.cursor = ""
+      document.body.style.userSelect = ""
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp])
+
+  return (
+    <>
+      <div className="fixed inset-0 -z-10">
+        <MemoizedDithering
+          color1={[0, 0, 0]}
+          color2={[0.05, 0.05, 0.1]}
+          color3={[0.02, 0.02, 0.05]}
+          color4={[0, 0, 0]}
+          speed={0.2}
+          noiseScale={0.003}
+          noiseOffset={0.2}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+
+      <div className="min-h-screen text-white">
+        <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 max-w-[1920px] mx-auto">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 md:mb-6 lg:mb-8">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap w-full sm:w-auto">
+              <div
+                className={`relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 transition-opacity duration-300 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
+              >
+                <img
+                  src="/images/logo.png"
+                  alt="AI Avatar Studio Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                  onLoad={() => setLogoLoaded(true)}
+                  style={{ opacity: logoLoaded ? 1 : 0 }}
+                />
+                {!logoLoaded && <Skeleton className="absolute inset-0 w-full h-full bg-gray-700" />}
+              </div>
+              <h1 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight">AI Avatar Studio</h1>
+            </div>
+
+            <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+              <button
+                onClick={() => setShowHowItWorks(true)}
+                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                How It Works
+              </button>
+            </div>
+          </div>
+
+          <ApiKeyWarning isVisible={apiKeyMissing} />
+
+          {/* Mobile Layout */}
+          {isMobile ? (
+            <div className="flex flex-col gap-4">
+              <div className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-3">
+                <InputSection
+                  prompt={prompt}
+                  setPrompt={setPrompt}
+                  aspectRatio={aspectRatio}
+                  setAspectRatio={setAspectRatio}
+                  availableAspectRatios={availableAspectRatios}
+                  useUrls={useUrls}
+                  setUseUrls={setUseUrls}
+                  image1Preview={image1Preview}
+                  image2Preview={image2Preview}
+                  image1Url={image1Url}
+                  image2Url={image2Url}
+                  isConvertingHeic={isConvertingHeic}
+                  canGenerate={canGenerate}
+                  hasImages={!!hasImages}
+                  onGenerate={runGeneration}
+                  onClearAll={clearAll}
+                  onImageUpload={handleImageUpload}
+                  onUrlChange={handleUrlChange}
+                  onClearImage={clearImage}
+                  onKeyDown={handleKeyDown}
+                  onPromptPaste={handlePromptPaste}
+                  onImageFullscreen={openImageFullscreen}
+                  promptTextareaRef={promptTextareaRef}
+                  isAuthenticated={false}
+                  remaining={0}
+                  decrementOptimistic={() => {}}
+                  usageLoading={false}
+                  onShowAuthModal={() => {}}
+                  generations={persistedGenerations}
+                  selectedGenerationId={selectedGenerationId}
+                  onSelectGeneration={setSelectedGenerationId}
+                  onCancelGeneration={cancelGeneration}
+                  onDeleteGeneration={deleteGeneration}
+                  historyLoading={historyLoading}
+                  hasMore={hasMore}
+                  onLoadMore={loadMore}
+                  isLoadingMore={isLoadingMore}
+                  avatarStyle={avatarStyle}
+                  setAvatarStyle={setAvatarStyle}
+                  background={background}
+                  setBackground={setBackground}
+                  colorMood={colorMood}
+                  setColorMood={setColorMood}
+                  isLoading={isLoading}
+                />
+              </div>
+
+              <div className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-3">
+                <OutputSection
+                  generatedImage={generatedImage}
+                  isLoading={isLoading}
+                  loadingGeneration={persistedGenerations.find((g) => g.status === "loading")}
+                  selectedGeneration={selectedGeneration}
+                  imageLoaded={imageLoaded}
+                  setImageLoaded={setImageLoaded}
+                  onFullscreen={openFullscreen}
+                  onDownload={downloadImage}
+                  onCopy={copyImageToClipboard}
+                  onOpenInNewTab={openImageInNewTab}
+                  onLoadAsInput={loadGeneratedAsInput}
+                />
+              </div>
+
+              <GenerationHistory
+                generations={persistedGenerations}
+                selectedGenerationId={selectedGenerationId}
+                onSelectGeneration={setSelectedGenerationId}
+                onCancelGeneration={cancelGeneration}
+                onDeleteGeneration={deleteGeneration}
+                onClearHistory={clearHistory}
+                isLoading={historyLoading}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
+              />
+            </div>
+          ) : (
+            /* Desktop Layout */
+            <div className="flex flex-col gap-4 lg:gap-6">
+              <div ref={containerRef} className="flex gap-4 lg:gap-6 min-h-[60vh] lg:min-h-[70vh]">
+                <div
+                  className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-4 lg:p-6 overflow-y-auto"
+                  style={{ width: `${leftWidth}%` }}
+                >
+                  <InputSection
+                    prompt={prompt}
+                    setPrompt={setPrompt}
+                    aspectRatio={aspectRatio}
+                    setAspectRatio={setAspectRatio}
+                    availableAspectRatios={availableAspectRatios}
+                    useUrls={useUrls}
+                    setUseUrls={setUseUrls}
+                    image1Preview={image1Preview}
+                    image2Preview={image2Preview}
+                    image1Url={image1Url}
+                    image2Url={image2Url}
+                    isConvertingHeic={isConvertingHeic}
+                    canGenerate={canGenerate}
+                    hasImages={!!hasImages}
+                    onGenerate={runGeneration}
+                    onClearAll={clearAll}
+                    onImageUpload={handleImageUpload}
+                    onUrlChange={handleUrlChange}
+                    onClearImage={clearImage}
+                    onKeyDown={handleKeyDown}
+                    onPromptPaste={handlePromptPaste}
+                    onImageFullscreen={openImageFullscreen}
+                    promptTextareaRef={promptTextareaRef}
+                    isAuthenticated={false}
+                    remaining={0}
+                    decrementOptimistic={() => {}}
+                    usageLoading={false}
+                    onShowAuthModal={() => {}}
+                    generations={persistedGenerations}
+                    selectedGenerationId={selectedGenerationId}
+                    onSelectGeneration={setSelectedGenerationId}
+                    onCancelGeneration={cancelGeneration}
+                    onDeleteGeneration={deleteGeneration}
+                    historyLoading={historyLoading}
+                    hasMore={hasMore}
+                    onLoadMore={loadMore}
+                    isLoadingMore={isLoadingMore}
+                    avatarStyle={avatarStyle}
+                    setAvatarStyle={setAvatarStyle}
+                    background={background}
+                    setBackground={setBackground}
+                    colorMood={colorMood}
+                    setColorMood={setColorMood}
+                    isLoading={isLoading}
+                  />
+                </div>
+
+                {/* Resizable Divider */}
+                <div
+                  className="w-1 flex-shrink-0 cursor-col-resize hover:bg-white/20 active:bg-white/30 transition-colors group relative"
+                  onMouseDown={handleMouseDown}
+                  onDoubleClick={handleDoubleClick}
+                >
+                  <div className="absolute inset-y-0 -left-2 -right-2" />
+                  <div className="h-full w-full bg-gray-700/50 group-hover:bg-white/20" />
+                </div>
+
+                <div
+                  className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-4 lg:p-6 flex flex-col"
+                  style={{ width: `${100 - leftWidth}%` }}
+                >
+                  <OutputSection
+                    generatedImage={generatedImage}
+                    isLoading={isLoading}
+                    loadingGeneration={persistedGenerations.find((g) => g.status === "loading")}
+                    selectedGeneration={selectedGeneration}
+                    imageLoaded={imageLoaded}
+                    setImageLoaded={setImageLoaded}
+                    onFullscreen={openFullscreen}
+                    onDownload={downloadImage}
+                    onCopy={copyImageToClipboard}
+                    onOpenInNewTab={openImageInNewTab}
+                    onLoadAsInput={loadGeneratedAsInput}
+                  />
+                </div>
+              </div>
+
+              <GenerationHistory
+                generations={persistedGenerations}
+                selectedGenerationId={selectedGenerationId}
+                onSelectGeneration={setSelectedGenerationId}
+                onCancelGeneration={cancelGeneration}
+                onDeleteGeneration={deleteGeneration}
+                onClearHistory={clearHistory}
+                isLoading={historyLoading}
+                hasMore={hasMore}
+                onLoadMore={loadMore}
+                isLoadingMore={isLoadingMore}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <GlobalDropZone
+        isDraggingOver={isDraggingOver}
+        dropZoneHover={dropZoneHover}
+        setDropZoneHover={setDropZoneHover}
+        onDrop={handleGlobalDrop}
+        singleSlot={true}
+      />
+
+      <FullscreenViewer
+        isOpen={showFullscreen}
+        imageUrl={fullscreenImageUrl}
+        onClose={closeFullscreen}
+        onNavigate={handleFullscreenNavigate}
+        hasMultiple={persistedGenerations.filter((g) => g.status === "complete" && g.imageUrl).length > 1}
+      />
+
+      <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+
+      <ToastNotification toast={toast} />
+    </>
+  )
+}
