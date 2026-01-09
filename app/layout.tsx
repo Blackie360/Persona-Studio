@@ -34,10 +34,9 @@ export const metadata: Metadata = {
     "v0 nano banana",
     "Vercel AI Gateway",
   ],
-  authors: [{ name: "v0" }],
-  creator: "v0",
-  publisher: "v0",
-  generator: "v0.app",
+  authors: [{ name: "Persona Studio" }],
+  creator: "Persona Studio",
+  publisher: "Persona Studio",
   metadataBase: new URL("https://v0nanobananapro.vercel.app"),
   alternates: {
     canonical: "/",

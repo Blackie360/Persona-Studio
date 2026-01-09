@@ -18,7 +18,6 @@ interface UseImageGenerationProps {
   addGeneration: (generation: Generation) => Promise<void>
   onToast: (message: string, type?: "success" | "error") => void
   onImageUpload: (file: File, imageNumber: 1 | 2) => Promise<void>
-  onApiKeyMissing?: () => void
   avatarStyle: string
   background: string
   colorMood: string
@@ -137,7 +136,6 @@ export function useImageGeneration({
   addGeneration,
   onToast,
   onImageUpload,
-  onApiKeyMissing,
   avatarStyle,
   background,
   colorMood,
@@ -237,7 +235,7 @@ export function useImageGeneration({
         if (errorData.error === "Configuration error" && errorData.details?.includes("AI_GATEWAY_API_KEY")) {
           clearInterval(progressInterval)
           setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
-          onApiKeyMissing?.()
+          onToast("AI_GATEWAY_API_KEY is not configured. Add the key to continue.", "error")
           return
         }
 

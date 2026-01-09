@@ -3,7 +3,6 @@
 Transform your photos into stunning professional avatars using AI. Choose from multiple styles including Corporate, LinkedIn, Anime, and Cyberpunk.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/WcNNC7u6nxg)
 
 ## Features
 
@@ -42,12 +41,3 @@ Your project is live at:
 
 **[https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)**
 
-## Build Your App
-
-Continue building on:
-
-**[https://v0.app/chat/WcNNC7u6nxg](https://v0.app/chat/WcNNC7u6nxg)**
-
----
-
-*Automatically synced with your [v0.app](https://v0.app) deployments*

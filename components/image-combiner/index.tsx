@@ -12,12 +12,10 @@ import { HowItWorksModal } from "./how-it-works-modal"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
 import { InputSection } from "./input-section"
 import { OutputSection } from "./output-section"
-import { ToastNotification } from "./toast-notification"
 import { GenerationHistory } from "./generation-history"
 import { GlobalDropZone } from "./global-drop-zone"
 import { FullscreenViewer } from "./fullscreen-viewer"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ApiKeyWarning } from "@/components/api-key-warning"
 
 const MemoizedDithering = memo(Dithering)
 
@@ -36,7 +34,6 @@ export function ImageCombiner() {
   const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
-  const [apiKeyMissing, setApiKeyMissing] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
   const [isResizing, setIsResizing] = useState(false)
@@ -100,7 +97,6 @@ export function ImageCombiner() {
     onToast: showToast,
     onImageUpload: handleImageUpload,
     onOutOfCredits: () => {},
-    onApiKeyMissing: () => setApiKeyMissing(true),
     avatarStyle,
     background,
     colorMood,
@@ -125,22 +121,6 @@ export function ImageCombiner() {
   useEffect(() => {
     uploadShowToast.current = showToast
   }, [uploadShowToast])
-
-  useEffect(() => {
-    const checkApiKey = async () => {
-      try {
-        const response = await fetch("/api/check-api-key")
-        const data = await response.json()
-        if (!data.configured) {
-          setApiKeyMissing(true)
-        }
-      } catch (error) {
-        console.error("Error checking API key:", error)
-      }
-    }
-
-    checkApiKey()
-  }, [])
 
   const openFullscreen = useCallback(() => {
     if (generatedImage?.url) {
@@ -644,8 +624,6 @@ export function ImageCombiner() {
             </div>
           </div>
 
-          <ApiKeyWarning isVisible={apiKeyMissing} />
-
           {/* Mobile Layout */}
           {isMobile ? (
             <div className="flex flex-col gap-4">
@@ -847,8 +825,6 @@ export function ImageCombiner() {
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
-
-      <ToastNotification toast={toast} />
     </>
   )
 }
