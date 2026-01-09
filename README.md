@@ -1,14 +1,40 @@
-# Nano Banana Pro Playground
+# AI Avatar Studio
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+Transform your photos into stunning professional avatars using AI. Choose from multiple styles including Corporate, LinkedIn, Anime, and Cyberpunk.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/WcNNC7u6nxg)
 
-## Overview
+## Features
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+- **Multiple Avatar Styles** - Corporate, LinkedIn, Anime, Cyberpunk
+- **Background Options** - Studio, Gradient, Blur, Solid backgrounds
+- **Color Moods** - Natural, Warm, Cool, Vibrant, Muted, High-Contrast
+- **AI-Powered** - Powered by Google Gemini image generation
+- **Dark Mode UI** - Sleek, modern dark interface
+
+## Tech Stack
+
+- **Framework**: Next.js 16
+- **Styling**: Tailwind CSS v4
+- **UI Components**: shadcn/ui
+- **Animations**: Framer Motion
+- **AI**: Vercel AI SDK with Google Gemini
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables (AI Gateway API key)
+4. Run the development server: `npm run dev`
+
+## How It Works
+
+1. Upload your photo
+2. Select an avatar style (Corporate, LinkedIn, Anime, Cyberpunk)
+3. Choose background type and color mood
+4. Add optional custom instructions
+5. Generate your AI avatar
 
 ## Deployment
 
@@ -16,15 +42,12 @@ Your project is live at:
 
 **[https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)**
 
-## Build your app
+## Build Your App
 
-Continue building your app on:
+Continue building on:
 
 **[https://v0.app/chat/WcNNC7u6nxg](https://v0.app/chat/WcNNC7u6nxg)**
 
-## How It Works
+---
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+*Automatically synced with your [v0.app](https://v0.app) deployments*
