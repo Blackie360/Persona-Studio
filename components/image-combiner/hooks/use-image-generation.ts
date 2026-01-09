@@ -167,6 +167,13 @@ export function useImageGeneration({
       return
     }
 
+    // Check generation limit (max 2 completed generations)
+    const completedCount = generations.filter((g) => g.status === "complete").length
+    if (completedCount >= 2) {
+      onToast("Maximum of 2 generations reached. Please delete an existing generation to create a new one.", "error")
+      return
+    }
+
     const fullPrompt = buildAvatarPrompt(avatarStyle, background, colorMood, prompt)
 
     const generationId = `gen-${Date.now()}-${Math.random().toString(36).substring(7)}`

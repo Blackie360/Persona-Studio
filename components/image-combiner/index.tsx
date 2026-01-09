@@ -180,7 +180,8 @@ export function ImageCombiner() {
       : null
 
   const hasImages = useUrls ? image1Url : image1
-  const canGenerate = hasImages ? true : false
+  const completedCount = persistedGenerations.filter((g) => g.status === "complete").length
+  const canGenerate = hasImages && completedCount < 2
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -782,6 +783,7 @@ export function ImageCombiner() {
                 onSelect={setSelectedGenerationId}
                 onCancel={cancelGeneration}
                 onDelete={deleteGeneration}
+                onImageClick={openImageFullscreen}
                 isLoading={historyLoading}
                 hasMore={hasMore}
                 onLoadMore={loadMore}
@@ -880,6 +882,7 @@ export function ImageCombiner() {
                 onSelect={setSelectedGenerationId}
                 onCancel={cancelGeneration}
                 onDelete={deleteGeneration}
+                onImageClick={openImageFullscreen}
                 isLoading={historyLoading}
                 hasMore={hasMore}
                 onLoadMore={loadMore}

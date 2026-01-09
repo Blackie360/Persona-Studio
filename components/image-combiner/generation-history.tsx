@@ -14,6 +14,7 @@ interface GenerationHistoryProps {
   onSelect: (id: string) => void
   onCancel: (id: string) => void
   onDelete?: (id: string) => Promise<void>
+  onImageClick?: (imageUrl: string) => void
   isLoading?: boolean
   hasMore?: boolean
   onLoadMore?: () => void
@@ -28,6 +29,7 @@ export function GenerationHistory({
   onSelect,
   onCancel,
   onDelete,
+  onImageClick,
   isLoading = false,
   hasMore = false,
   onLoadMore,
@@ -75,7 +77,13 @@ export function GenerationHistory({
             {generations.map((gen, index) => (
               <div
                 key={gen.id}
-                onClick={() => onSelect(gen.id)}
+                onClick={() => {
+                  onSelect(gen.id)
+                  // Open in fullscreen modal if generation is complete and has image
+                  if (gen.status === "complete" && gen.imageUrl && onImageClick) {
+                    onImageClick(gen.imageUrl)
+                  }
+                }}
                 className={cn(
                   "relative flex-shrink-0 w-18 h-18 md:w-24 md:h-24 overflow-hidden transition-all cursor-pointer group",
                   selectedId === gen.id
@@ -91,6 +99,10 @@ export function GenerationHistory({
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault()
                     onSelect(gen.id)
+                    // Open in fullscreen modal if generation is complete and has image
+                    if (gen.status === "complete" && gen.imageUrl && onImageClick) {
+                      onImageClick(gen.imageUrl)
+                    }
                   }
                 }}
               >
