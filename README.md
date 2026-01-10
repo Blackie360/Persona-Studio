@@ -1,37 +1,40 @@
-# AI Avatar Studio
+# Persona Studio
 
-Transform your photos into stunning professional avatars using AI. Choose from multiple styles including Corporate, LinkedIn, Anime, and Cyberpunk.
+An AI-powered avatar generation application.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)
+## Setup
 
-## Features
+1. Install dependencies:
+   ```bash
+   pnpm install
+   ```
 
-- **Multiple Avatar Styles** - Corporate, LinkedIn, Anime, Cyberpunk
-- **Background Options** - Studio, Gradient, Blur, Solid backgrounds
-- **Color Moods** - Natural, Warm, Cool, Vibrant, Muted, High-Contrast
-- **AI-Powered** - Powered by Google Gemini image generation
-- **Dark Mode UI** - Sleek, modern dark interface
+2. Set up environment variables in `.env.local`:
+   ```env
+   DATABASE_URL=your_database_url
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   BETTER_AUTH_SECRET=your_better_auth_secret
+   BETTER_AUTH_URL=your_better_auth_url
+   ADMIN_SESSION_SECRET=your_admin_session_secret (optional, defaults to BETTER_AUTH_SECRET)
+   ```
 
-## Tech Stack
+3. Run database migrations:
+   ```bash
+   pnpm drizzle-kit push
+   ```
 
-- **Framework**: Next.js 16
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui
-- **Animations**: Framer Motion
-- **AI**: Vercel AI SDK with Google Gemini
+4. Start the development server:
+   ```bash
+   pnpm dev
+   ```
 
-## Getting Started
+## Admin Dashboard
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Set up environment variables (AI Gateway API key)
-4. Run the development server: `npm run dev`
+Access the admin dashboard at `/admin/login` with your admin credentials.
 
-## How It Works
+## Security Notes
 
-1. Upload your photo
-2. Select an avatar style (Corporate, LinkedIn, Anime, Cyberpunk)
-3. Choose background type and color mood
-4. Add optional custom instructions
-5. Generate your AI avatar
-
+- Never commit `.env.local` or any files containing secrets
+- Admin credentials should be set via environment variables, not hardcoded
+- Admin users must be created directly in the database or through a secure admin interface

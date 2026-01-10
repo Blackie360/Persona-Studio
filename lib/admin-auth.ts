@@ -6,8 +6,12 @@ import { nanoid } from "nanoid"
 import { SignJWT, jwtVerify } from "jose"
 
 const ADMIN_SESSION_COOKIE = "admin_session"
-const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.BETTER_AUTH_SECRET || "fallback-secret-key-change-in-production"
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.BETTER_AUTH_SECRET
 const SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
+
+if (!ADMIN_SESSION_SECRET) {
+  throw new Error("ADMIN_SESSION_SECRET or BETTER_AUTH_SECRET environment variable is required")
+}
 
 // Simple password hashing using Web Crypto API (since bcrypt requires native bindings)
 async function hashPassword(password: string): Promise<string> {
