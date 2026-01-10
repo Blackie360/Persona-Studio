@@ -12,6 +12,7 @@ import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
 import { UserProfileMenu } from "@/components/user-profile-menu"
+import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
 import { InputSection } from "./input-section"
 import { OutputSection } from "./output-section"
@@ -149,6 +150,8 @@ export function ImageCombiner() {
     decrementOptimistic,
     usageLoading,
   } = useGenerationLimit()
+
+  const { data: session } = useSession()
 
   const {
     generations: persistedGenerations,
