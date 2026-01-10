@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/admin-auth"
 import { db } from "@/lib/db"
 import { generationLog, user, blockedUser } from "@/lib/db/schema"
 import { sql, count, eq, and, gte } from "drizzle-orm"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await requireAdmin()
+    await requireAdmin(request)
 
     // Total generations
     const totalGenerations = await db
@@ -69,11 +69,18 @@ export async function GET() {
     })
   } catch (error) {
     console.error("Error fetching admin stats:", error)
-    if (error instanceof Error && error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (error instanceof Error) {
+      if (error.message === "Unauthorized") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+      // Log the actual error message for debugging
+      console.error("Error details:", error.message, error.stack)
     }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     )
   }

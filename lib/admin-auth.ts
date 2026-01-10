@@ -6,11 +6,14 @@ import { nanoid } from "nanoid"
 import { SignJWT, jwtVerify } from "jose"
 
 const ADMIN_SESSION_COOKIE = "admin_session"
-const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.BETTER_AUTH_SECRET
 const SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
 
-if (!ADMIN_SESSION_SECRET) {
-  throw new Error("ADMIN_SESSION_SECRET or BETTER_AUTH_SECRET environment variable is required")
+function getAdminSessionSecret(): string {
+  const secret = process.env.ADMIN_SESSION_SECRET || process.env.BETTER_AUTH_SECRET
+  if (!secret) {
+    throw new Error("ADMIN_SESSION_SECRET or BETTER_AUTH_SECRET environment variable is required")
+  }
+  return secret
 }
 
 // Simple password hashing using Web Crypto API (since bcrypt requires native bindings)
@@ -50,18 +53,20 @@ export async function verifyAdminCredentials(username: string, password: string)
 export async function createAdminSession(adminId: string): Promise<string> {
   const sessionToken = nanoid()
   const expiresAt = new Date(Date.now() + SESSION_DURATION)
+  const secret = getAdminSessionSecret()
 
   const jwt = await new SignJWT({ adminId, sessionToken })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresAt)
-    .sign(new TextEncoder().encode(ADMIN_SESSION_SECRET))
+    .sign(new TextEncoder().encode(secret))
 
   return jwt
 }
 
 export async function getAdminSession(request?: Request): Promise<{ adminId: string } | null> {
   try {
+    const secret = getAdminSessionSecret()
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get(ADMIN_SESSION_COOKIE)
 
@@ -71,7 +76,7 @@ export async function getAdminSession(request?: Request): Promise<{ adminId: str
 
     const { payload } = await jwtVerify(
       sessionCookie.value,
-      new TextEncoder().encode(ADMIN_SESSION_SECRET)
+      new TextEncoder().encode(secret)
     )
 
     if (!payload.adminId || typeof payload.adminId !== "string") {
