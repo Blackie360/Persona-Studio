@@ -93,6 +93,9 @@ export function InputSection({
   onPromptPaste,
   onImageFullscreen,
   promptTextareaRef,
+  isAuthenticated,
+  remaining,
+  usageLoading,
   avatarStyle,
   setAvatarStyle,
   background,
@@ -318,22 +321,37 @@ export function InputSection({
 
         {/* Generate Button - Add entrance + micro-interactions */}
         <motion.div
-          className="pt-0"
+          className="pt-0 space-y-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.25 }}
         >
-          <motion.div whileHover={{ scale: 1.01, y: -1 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          {!isAuthenticated && (
+            <div className="text-xs text-gray-400 text-center">
+              {remaining === Infinity ? (
+                <span className="text-green-400">Unlimited generations</span>
+              ) : (
+                <span>
+                  {remaining} free {remaining === 1 ? "generation" : "generations"} remaining
+                  {remaining === 0 && " (resets in 7 days)"}
+                </span>
+              )}
+            </div>
+          )}
+          {isAuthenticated && (
+            <div className="text-xs text-green-400 text-center">Unlimited generations</div>
+          )}
+          <motion.div whileHover={canGenerate ? { scale: 1.01, y: -1 } : {}} whileTap={canGenerate ? { scale: 0.98 } : {}} transition={{ duration: 0.15 }}>
             <Button
               onClick={onGenerate}
-              disabled={!canGenerate || isConvertingHeic || isLoading}
+              disabled={!canGenerate || isConvertingHeic || isLoading || usageLoading}
               className={cn(
                 btnClassName,
                 "transition-shadow duration-200",
                 canGenerate && !isLoading && "hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)]",
               )}
             >
-              {isConvertingHeic ? "Converting..." : isLoading ? "Generating..." : "Transform Photo"}
+              {isConvertingHeic ? "Converting..." : isLoading || usageLoading ? "Generating..." : "Transform Photo"}
             </Button>
           </motion.div>
         </motion.div>

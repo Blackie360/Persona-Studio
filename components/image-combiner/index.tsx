@@ -8,7 +8,9 @@ import { useMobile } from "@/hooks/use-mobile"
 import { useImageUpload } from "./hooks/use-image-upload"
 import { useImageGeneration } from "./hooks/use-image-generation"
 import { useAspectRatio } from "./hooks/use-aspect-ratio"
+import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
+import { AuthModal } from "@/components/auth-modal"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
 import { InputSection } from "./input-section"
 import { OutputSection } from "./output-section"
@@ -103,6 +105,7 @@ export function ImageCombiner() {
   const [dragCounter, setDragCounter] = useState(0)
   const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -132,6 +135,14 @@ export function ImageCombiner() {
   } = useImageUpload()
 
   const { aspectRatio, setAspectRatio, availableAspectRatios, detectAspectRatio } = useAspectRatio()
+
+  const {
+    isAuthenticated,
+    remaining,
+    canGenerate: canGenerateFromLimit,
+    decrementOptimistic,
+    usageLoading,
+  } = useGenerationLimit()
 
   const {
     generations: persistedGenerations,
@@ -169,6 +180,9 @@ export function ImageCombiner() {
     avatarStyle,
     background,
     colorMood,
+    canGenerate: canGenerateFromLimit,
+    onShowAuthModal: () => setShowAuthModal(true),
+    decrementOptimistic,
   })
 
   const selectedGeneration = persistedGenerations.find((g) => g.id === selectedGenerationId) || persistedGenerations[0]
@@ -179,8 +193,7 @@ export function ImageCombiner() {
       : null
 
   const hasImages = useUrls ? !!image1Url : !!image1
-  const completedCount = persistedGenerations.filter((g) => g.status === "complete").length
-  const canGenerate = hasImages && completedCount < 2
+  const canGenerate = hasImages && canGenerateFromLimit
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -821,11 +834,11 @@ export function ImageCombiner() {
                     onPromptPaste={handlePromptPaste}
                     onImageFullscreen={openImageFullscreen}
                     promptTextareaRef={promptTextareaRef}
-                    isAuthenticated={false}
-                    remaining={0}
-                    decrementOptimistic={() => {}}
-                    usageLoading={false}
-                    onShowAuthModal={() => {}}
+                    isAuthenticated={isAuthenticated}
+                    remaining={remaining}
+                    decrementOptimistic={decrementOptimistic}
+                    usageLoading={usageLoading}
+                    onShowAuthModal={() => setShowAuthModal(true)}
                     generations={persistedGenerations}
                     selectedGenerationId={selectedGenerationId}
                     onSelectGeneration={setSelectedGenerationId}
@@ -907,6 +920,7 @@ export function ImageCombiner() {
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   )
 }
