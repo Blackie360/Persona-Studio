@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
+import { logGenerationStart, logGenerationComplete } from "@/lib/generation-logger"
+import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { blockedUser } from "@/lib/db/schema"
+import { eq, and, or } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
@@ -20,10 +25,52 @@ interface ErrorResponse {
 }
 
 export async function POST(request: NextRequest) {
+  let logId: string | null = null
   try {
+    // Get user session and request metadata for logging
+    const session = await auth.api.getSession({ headers: request.headers })
+    const userId = session?.user?.id || null
+    const sessionId = session?.session?.id || null
+    const userEmail = session?.user?.email || null
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+                     request.headers.get("x-real-ip") || 
+                     "unknown"
+    const userAgent = request.headers.get("user-agent") || "unknown"
+
+    // Check if user is blocked
+    const blocks = await db
+      .select()
+      .from(blockedUser)
+      .where(
+        and(
+          eq(blockedUser.isActive, true),
+          or(
+            userId ? eq(blockedUser.userId, userId) : undefined,
+            userEmail ? eq(blockedUser.email, userEmail) : undefined,
+            sessionId ? eq(blockedUser.sessionId, sessionId) : undefined
+          )!
+        )
+      )
+      .limit(1)
+
+    if (blocks.length > 0) {
+      const block = blocks[0]
+      return NextResponse.json<ErrorResponse>(
+        { 
+          error: "Generation blocked",
+          details: block.reason || "You have been blocked from generating images"
+        },
+        { status: 403 }
+      )
+    }
+
     const formData = await request.formData()
     const mode = formData.get("mode") as string
     const prompt = formData.get("prompt") as string
+    const aspectRatio = formData.get("aspectRatio") as string || "square"
+    const avatarStyle = formData.get("avatarStyle") as string || null
+    const background = formData.get("background") as string || null
+    const colorMood = formData.get("colorMood") as string || null
 
     if (!mode) {
       return NextResponse.json<ErrorResponse>({ error: "Mode is required" }, { status: 400 })
@@ -41,6 +88,18 @@ export async function POST(request: NextRequest) {
     }
 
     const model = "google/gemini-3-pro-image-preview"
+
+    // Log generation start
+    logId = await logGenerationStart({
+      userId,
+      sessionId: sessionId || undefined,
+      prompt,
+      avatarStyle: avatarStyle || undefined,
+      background: background || undefined,
+      colorMood: colorMood || undefined,
+      ipAddress,
+      userAgent,
+    })
 
     if (mode === "text-to-image") {
       const imageGenerationPrompt = `Generate an image: ${prompt}`
@@ -61,6 +120,11 @@ export async function POST(request: NextRequest) {
 
       const firstImage = imageFiles[0]
       const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
+
+      // Log generation complete
+      if (logId) {
+        await logGenerationComplete(logId, imageUrl, "complete")
+      }
 
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
@@ -177,6 +241,11 @@ export async function POST(request: NextRequest) {
       const firstImage = imageFiles[0]
       const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
 
+      // Log generation complete
+      if (logId) {
+        await logGenerationComplete(logId, imageUrl, "complete")
+      }
+
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
         prompt: editingPrompt,
@@ -191,6 +260,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error in generate-image route:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+
+    // Log generation error
+    if (logId) {
+      await logGenerationComplete(logId, null, "error")
+    }
 
     return NextResponse.json<ErrorResponse>(
       {
