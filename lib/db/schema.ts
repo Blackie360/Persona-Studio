@@ -91,3 +91,47 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const generationLog = pgTable("generation_log", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  sessionId: text("session_id"),
+  status: text("status").notNull(), // loading, complete, error
+  prompt: text("prompt").notNull(),
+  imageUrl: text("image_url"),
+  avatarStyle: text("avatar_style"),
+  background: text("background"),
+  colorMood: text("color_mood"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+}, (table) => [
+  index("generation_log_userId_idx").on(table.userId),
+  index("generation_log_createdAt_idx").on(table.createdAt),
+]);
+
+export const adminUser = pgTable("admin_user", {
+  id: text("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+export const blockedUser = pgTable("blocked_user", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+  email: text("email"),
+  sessionId: text("session_id"),
+  reason: text("reason"),
+  blockedAt: timestamp("blocked_at").defaultNow().notNull(),
+  blockedBy: text("blocked_by").notNull(), // admin id
+  isActive: boolean("is_active").default(true).notNull(),
+}, (table) => [
+  index("blocked_user_userId_idx").on(table.userId),
+  index("blocked_user_isActive_idx").on(table.isActive),
+]);
