@@ -11,6 +11,7 @@ import { useAspectRatio } from "./hooks/use-aspect-ratio"
 import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
+import { UserProfileMenu } from "@/components/user-profile-menu"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
 import { InputSection } from "./input-section"
 import { OutputSection } from "./output-section"
@@ -728,12 +729,16 @@ export function ImageCombiner() {
             </div>
 
             <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
-              <button
-                onClick={() => setShowHowItWorks(true)}
-                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
-              >
-                How It Works
-              </button>
+              {session?.user ? (
+                <UserProfileMenu onToast={showToast} />
+              ) : (
+                <button
+                  onClick={() => setShowHowItWorks(true)}
+                  className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                >
+                  How It Works
+                </button>
+              )}
             </div>
           </div>
 
