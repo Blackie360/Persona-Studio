@@ -25,11 +25,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 if (typeof window !== "undefined") {
   const originalError = console.error
   console.error = (...args: unknown[]) => {
-    const firstArg = args[0]
+    // Check if any argument contains the noiseScale/noiseOffset warning
+    const errorMessage = args
+      .map((arg) => (typeof arg === "string" ? arg : String(arg)))
+      .join(" ")
+    
     if (
-      typeof firstArg === "string" &&
-      (firstArg.includes("noiseScale") || firstArg.includes("noiseOffset")) &&
-      firstArg.includes("React does not recognize")
+      errorMessage.includes("noiseScale") ||
+      errorMessage.includes("noiseOffset") ||
+      errorMessage.includes("noisescale") ||
+      errorMessage.includes("noiseoffset")
     ) {
       // Suppress this specific warning from Dithering component
       return
