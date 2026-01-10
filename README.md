@@ -35,9 +35,3 @@ Transform your photos into stunning professional avatars using AI. Choose from m
 4. Add optional custom instructions
 5. Generate your AI avatar
 
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground](https://vercel.com/blackhat360gamers-projects/v0-nano-banana-pro-playground)**
-
