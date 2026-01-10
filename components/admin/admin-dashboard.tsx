@@ -33,7 +33,10 @@ export function AdminDashboard() {
         return
       }
       if (!response.ok) {
-        throw new Error(`Failed to fetch stats: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.message || errorData.error || `Failed to fetch stats: ${response.status}`
+        console.error("Error fetching stats:", errorMessage, errorData)
+        throw new Error(errorMessage)
       }
       const data = await response.json()
       setStats(data)
