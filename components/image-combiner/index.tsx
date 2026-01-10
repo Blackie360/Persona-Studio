@@ -8,7 +8,11 @@ import { useMobile } from "@/hooks/use-mobile"
 import { useImageUpload } from "./hooks/use-image-upload"
 import { useImageGeneration } from "./hooks/use-image-generation"
 import { useAspectRatio } from "./hooks/use-aspect-ratio"
+import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
+import { AuthModal } from "@/components/auth-modal"
+import { UserProfileMenu } from "@/components/user-profile-menu"
+import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
 import { InputSection } from "./input-section"
 import { OutputSection } from "./output-section"
@@ -23,11 +27,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 if (typeof window !== "undefined") {
   const originalError = console.error
   console.error = (...args: unknown[]) => {
-    const firstArg = args[0]
+    // Check if any argument contains the noiseScale/noiseOffset warning
+    const errorMessage = args
+      .map((arg) => (typeof arg === "string" ? arg : String(arg)))
+      .join(" ")
+    
     if (
-      typeof firstArg === "string" &&
-      (firstArg.includes("noiseScale") || firstArg.includes("noiseOffset")) &&
-      firstArg.includes("React does not recognize")
+      errorMessage.includes("noiseScale") ||
+      errorMessage.includes("noiseOffset") ||
+      errorMessage.includes("noisescale") ||
+      errorMessage.includes("noiseoffset")
     ) {
       // Suppress this specific warning from Dithering component
       return
@@ -103,6 +112,7 @@ export function ImageCombiner() {
   const [dragCounter, setDragCounter] = useState(0)
   const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -132,6 +142,16 @@ export function ImageCombiner() {
   } = useImageUpload()
 
   const { aspectRatio, setAspectRatio, availableAspectRatios, detectAspectRatio } = useAspectRatio()
+
+  const {
+    isAuthenticated,
+    remaining,
+    canGenerate: canGenerateFromLimit,
+    decrementOptimistic,
+    usageLoading,
+  } = useGenerationLimit()
+
+  const { data: session } = useSession()
 
   const {
     generations: persistedGenerations,
@@ -169,6 +189,9 @@ export function ImageCombiner() {
     avatarStyle,
     background,
     colorMood,
+    canGenerate: canGenerateFromLimit,
+    onShowAuthModal: () => setShowAuthModal(true),
+    decrementOptimistic,
   })
 
   const selectedGeneration = persistedGenerations.find((g) => g.id === selectedGenerationId) || persistedGenerations[0]
@@ -179,8 +202,18 @@ export function ImageCombiner() {
       : null
 
   const hasImages = useUrls ? !!image1Url : !!image1
-  const completedCount = persistedGenerations.filter((g) => g.status === "complete").length
-  const canGenerate = hasImages && completedCount < 2
+  const canGenerate = hasImages && canGenerateFromLimit
+
+  // Show auth modal automatically when limit is reached and user tries to generate
+  useEffect(() => {
+    if (hasImages && !canGenerateFromLimit && !isAuthenticated && !showAuthModal) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        setShowAuthModal(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasImages, canGenerateFromLimit, isAuthenticated, showAuthModal])
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -699,12 +732,16 @@ export function ImageCombiner() {
             </div>
 
             <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
-              <button
-                onClick={() => setShowHowItWorks(true)}
-                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
-              >
-                How It Works
-              </button>
+              {session?.user ? (
+                <UserProfileMenu onToast={showToast} />
+              ) : (
+                <button
+                  onClick={() => setShowHowItWorks(true)}
+                  className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                >
+                  How It Works
+                </button>
+              )}
             </div>
           </div>
 
@@ -736,11 +773,11 @@ export function ImageCombiner() {
                   onPromptPaste={handlePromptPaste}
                   onImageFullscreen={openImageFullscreen}
                   promptTextareaRef={promptTextareaRef}
-                  isAuthenticated={false}
-                  remaining={0}
-                  decrementOptimistic={() => {}}
-                  usageLoading={false}
-                  onShowAuthModal={() => {}}
+                  isAuthenticated={isAuthenticated}
+                  remaining={remaining}
+                  decrementOptimistic={decrementOptimistic}
+                  usageLoading={usageLoading}
+                  onShowAuthModal={() => setShowAuthModal(true)}
                   generations={persistedGenerations}
                   selectedGenerationId={selectedGenerationId}
                   onSelectGeneration={setSelectedGenerationId}
@@ -821,11 +858,11 @@ export function ImageCombiner() {
                     onPromptPaste={handlePromptPaste}
                     onImageFullscreen={openImageFullscreen}
                     promptTextareaRef={promptTextareaRef}
-                    isAuthenticated={false}
-                    remaining={0}
-                    decrementOptimistic={() => {}}
-                    usageLoading={false}
-                    onShowAuthModal={() => {}}
+                    isAuthenticated={isAuthenticated}
+                    remaining={remaining}
+                    decrementOptimistic={decrementOptimistic}
+                    usageLoading={usageLoading}
+                    onShowAuthModal={() => setShowAuthModal(true)}
                     generations={persistedGenerations}
                     selectedGenerationId={selectedGenerationId}
                     onSelectGeneration={setSelectedGenerationId}
@@ -907,6 +944,7 @@ export function ImageCombiner() {
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
   )
 }
