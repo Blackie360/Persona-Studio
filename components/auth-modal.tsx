@@ -32,7 +32,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Sign in to Continue</DialogTitle>
           <DialogDescription className="text-gray-400">
-            You've reached the free generation limit. Sign in with Google to generate unlimited photos.
+            You've reached the free generation limit. Sign in with Google to get 3 more generations.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
@@ -44,7 +44,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {isLoading ? "Signing in..." : "Sign in with Google"}
           </Button>
           <p className="text-xs text-gray-500 text-center">
-            Your free limit resets every 7 days. Sign in for unlimited access.
+            Sign in to get 3 additional generations. Your limit resets every 7 days.
           </p>
         </div>
       </DialogContent>
