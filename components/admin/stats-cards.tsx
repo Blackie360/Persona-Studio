@@ -13,10 +13,20 @@ interface DashboardStats {
 }
 
 interface StatsCardsProps {
-  stats: DashboardStats
+  stats: DashboardStats | null | undefined
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
+  // Provide default values to prevent undefined errors
+  const safeStats = {
+    totalGenerations: stats?.totalGenerations ?? 0,
+    totalUsers: stats?.totalUsers ?? 0,
+    blockedUsers: stats?.blockedUsers ?? 0,
+    recentGenerations: stats?.recentGenerations ?? 0,
+    generationsByStatus: stats?.generationsByStatus ?? {},
+    generationsOverTime: stats?.generationsOverTime ?? [],
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
@@ -27,7 +37,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-white">
-            {stats.totalGenerations.toLocaleString()}
+            {safeStats.totalGenerations.toLocaleString()}
           </div>
           <p className="text-xs text-gray-400 mt-1">
             All time generations
@@ -43,7 +53,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-white">
-            {stats.totalUsers.toLocaleString()}
+            {safeStats.totalUsers.toLocaleString()}
           </div>
           <p className="text-xs text-gray-400 mt-1">
             Registered users
@@ -59,7 +69,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-red-400">
-            {stats.blockedUsers.toLocaleString()}
+            {safeStats.blockedUsers.toLocaleString()}
           </div>
           <p className="text-xs text-gray-400 mt-1">
             Currently blocked
@@ -75,7 +85,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-white">
-            {stats.recentGenerations.toLocaleString()}
+            {safeStats.recentGenerations.toLocaleString()}
           </div>
           <p className="text-xs text-gray-400 mt-1">
             Last 7 days
@@ -83,7 +93,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         </CardContent>
       </Card>
 
-      {Object.keys(stats.generationsByStatus).length > 0 && (
+      {Object.keys(safeStats.generationsByStatus).length > 0 && (
         <Card className="bg-black/40 border-gray-700 backdrop-blur-sm md:col-span-2 lg:col-span-4">
           <CardHeader>
             <CardTitle className="text-gray-300 text-sm font-medium">
@@ -92,7 +102,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(stats.generationsByStatus).map(([status, count]) => (
+              {Object.entries(safeStats.generationsByStatus).map(([status, count]) => (
                 <Badge
                   key={status}
                   variant={status === "complete" ? "default" : status === "error" ? "destructive" : "secondary"}

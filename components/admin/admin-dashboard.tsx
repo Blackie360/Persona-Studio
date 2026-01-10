@@ -32,10 +32,22 @@ export function AdminDashboard() {
         router.push("/admin/login")
         return
       }
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stats: ${response.status}`)
+      }
       const data = await response.json()
       setStats(data)
     } catch (error) {
       console.error("Error fetching stats:", error)
+      // Set default stats on error to prevent undefined errors
+      setStats({
+        totalGenerations: 0,
+        totalUsers: 0,
+        blockedUsers: 0,
+        recentGenerations: 0,
+        generationsByStatus: {},
+        generationsOverTime: [],
+      })
     } finally {
       setLoading(false)
     }
@@ -74,7 +86,7 @@ export function AdminDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {stats && <StatsCards stats={stats} />}
+        <StatsCards stats={stats} />
         
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="lg:col-span-2">
