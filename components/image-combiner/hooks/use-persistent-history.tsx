@@ -17,13 +17,57 @@ function getLocalGenerations(): Generation[] {
   }
 }
 
-function saveLocalGeneration(generation: Generation) {
+function saveLocalGeneration(generation: Generation, onQuotaExceeded?: () => void) {
   try {
     const current = getLocalGenerations()
-    const updated = [generation, ...current].slice(0, MAX_STORED)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    let updated = [generation, ...current]
+    
+    // Try saving with MAX_STORED items first
+    let itemsToSave = Math.min(updated.length, MAX_STORED)
+    let saved = false
+    
+    while (itemsToSave > 0 && !saved) {
+      try {
+        const toSave = updated.slice(0, itemsToSave)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
+        saved = true
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "QuotaExceededError") {
+          // Reduce items and try again
+          itemsToSave = Math.max(1, Math.floor(itemsToSave * 0.7)) // Reduce by 30%
+          
+          // If we can't even save 1 item, clear and try again
+          if (itemsToSave < 1) {
+            // Try to save just the new generation without history
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify([generation]))
+              saved = true
+            } catch {
+              // Last resort: clear everything and save just the new one
+              localStorage.removeItem(STORAGE_KEY)
+              localStorage.setItem(STORAGE_KEY, JSON.stringify([generation]))
+              saved = true
+              if (onQuotaExceeded) {
+                onQuotaExceeded()
+              }
+            }
+          }
+        } else {
+          // Other error, just log it
+          console.error("Error saving generation to localStorage:", error)
+          saved = true // Exit loop
+        }
+      }
+    }
+    
+    if (!saved && onQuotaExceeded) {
+      onQuotaExceeded()
+    }
   } catch (error) {
     console.error("Error saving generation to localStorage:", error)
+    if (error instanceof DOMException && error.name === "QuotaExceededError" && onQuotaExceeded) {
+      onQuotaExceeded()
+    }
   }
 }
 
@@ -33,6 +77,10 @@ function deleteLocalGeneration(id: string) {
     const updated = current.filter((g) => g.id !== id)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
   } catch (error) {
+    if (error instanceof DOMException && error.name === "QuotaExceededError") {
+      // This shouldn't happen on delete, but handle it just in case
+      console.warn("QuotaExceededError on delete - this is unexpected")
+    }
     console.error("Error deleting generation from localStorage:", error)
   }
 }
@@ -77,7 +125,16 @@ export function usePersistentHistory(onToast?: (message: string, type: "success"
 
   const addGeneration = useCallback(
     async (generation: Generation) => {
-      saveLocalGeneration(generation)
+      const handleQuotaExceeded = () => {
+        if (onToast) {
+          onToast(
+            "Storage limit reached. Some older generations may have been removed to save space.",
+            "error"
+          )
+        }
+      }
+      
+      saveLocalGeneration(generation, handleQuotaExceeded)
 
       setGenerations((prev) => {
         const updated = [generation, ...prev]
