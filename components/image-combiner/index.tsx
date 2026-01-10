@@ -200,6 +200,17 @@ export function ImageCombiner() {
   const hasImages = useUrls ? !!image1Url : !!image1
   const canGenerate = hasImages && canGenerateFromLimit
 
+  // Show auth modal automatically when limit is reached and user tries to generate
+  useEffect(() => {
+    if (hasImages && !canGenerateFromLimit && !isAuthenticated && !showAuthModal) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        setShowAuthModal(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasImages, canGenerateFromLimit, isAuthenticated, showAuthModal])
+
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
       setImageLoaded(false)
@@ -754,11 +765,11 @@ export function ImageCombiner() {
                   onPromptPaste={handlePromptPaste}
                   onImageFullscreen={openImageFullscreen}
                   promptTextareaRef={promptTextareaRef}
-                  isAuthenticated={false}
-                  remaining={0}
-                  decrementOptimistic={() => {}}
-                  usageLoading={false}
-                  onShowAuthModal={() => {}}
+                  isAuthenticated={isAuthenticated}
+                  remaining={remaining}
+                  decrementOptimistic={decrementOptimistic}
+                  usageLoading={usageLoading}
+                  onShowAuthModal={() => setShowAuthModal(true)}
                   generations={persistedGenerations}
                   selectedGenerationId={selectedGenerationId}
                   onSelectGeneration={setSelectedGenerationId}

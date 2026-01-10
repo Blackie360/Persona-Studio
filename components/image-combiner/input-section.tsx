@@ -96,6 +96,7 @@ export function InputSection({
   isAuthenticated,
   remaining,
   usageLoading,
+  onShowAuthModal,
   avatarStyle,
   setAvatarStyle,
   background,
@@ -342,12 +343,19 @@ export function InputSection({
           )}
           <motion.div whileHover={canGenerate ? { scale: 1.01, y: -1 } : {}} whileTap={canGenerate ? { scale: 0.98 } : {}} transition={{ duration: 0.15 }}>
             <Button
-              onClick={onGenerate}
-              disabled={!canGenerate || isConvertingHeic || isLoading || usageLoading}
+              onClick={() => {
+                if (!canGenerate && !isAuthenticated) {
+                  onShowAuthModal()
+                } else {
+                  onGenerate()
+                }
+              }}
+              disabled={isConvertingHeic || isLoading || usageLoading}
               className={cn(
                 btnClassName,
                 "transition-shadow duration-200",
                 canGenerate && !isLoading && "hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)]",
+                !canGenerate && !isAuthenticated && "opacity-75 cursor-pointer",
               )}
             >
               {isConvertingHeic ? "Converting..." : isLoading || usageLoading ? "Generating..." : "Transform Photo"}
