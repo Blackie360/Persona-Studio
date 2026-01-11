@@ -226,7 +226,7 @@ export function OutputSection({
                   </motion.div>
                 </div>
                 <motion.img
-                  src={generatedImage.url || "/placeholder.svg"}
+                  src={generatedImage.url}
                   alt="Generated avatar image"
                   className={cn(
                     "max-w-full max-h-full cursor-pointer transition-transform duration-200",

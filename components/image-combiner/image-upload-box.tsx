@@ -55,7 +55,7 @@ export function ImageUploadBox({ imageNumber, preview, onDrop, onClear, onSelect
             </svg>
           </button>
           <img
-            src={preview || "/placeholder.svg"}
+            src={preview}
             alt={`Image ${imageNumber}`}
             className="w-full h-full object-contain"
           />

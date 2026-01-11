@@ -182,7 +182,7 @@ export function GenerationHistory({
                       </button>
                     )}
                     <Image
-                      src={gen.imageUrl || "/placeholder.svg"}
+                      src={gen.imageUrl!}
                       alt={gen.prompt || "Generated image"}
                       fill
                       sizes="(max-width: 768px) 80px, 96px"

@@ -135,7 +135,7 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
 
             {/* Image - Responsive to device screen */}
             <motion.img
-              src={imageUrl || "/placeholder.svg"}
+              src={imageUrl}
               alt="Fullscreen generated image"
               className="object-contain mx-auto shadow-2xl rounded-lg"
               style={{

@@ -718,7 +718,7 @@ export function ImageCombiner() {
                 className={`relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 transition-opacity duration-300 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
               >
                 <img
-                  src="/images/logo.png"
+                  src="/logo.jpg"
                   alt="AI Avatar Studio Logo"
                   width={40}
                   height={40}
