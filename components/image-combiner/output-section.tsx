@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -123,68 +123,246 @@ export function OutputSection({
     onClick,
     disabled,
     title,
+    tooltip,
     icon,
     label,
+    isLoading = false,
   }: {
-    onClick: () => void
+    onClick: () => void | Promise<void>
     disabled: boolean
     title: string
+    tooltip: string
     icon: React.ReactNode
     label: string
-  }) => (
-    <motion.div whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}>
-      <Button
-        onClick={onClick}
-        disabled={disabled}
-        variant="outline"
-        size="sm"
-        className="text-xs h-7 px-2 md:px-3 bg-transparent border-border text-foreground hover:bg-accent flex items-center gap-1 lg:bg-background/80 lg:backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-shadow hover:shadow-[0_2px_10px_rgba(255,255,255,0.1)]"
-        title={title}
+    isLoading?: boolean
+  }) => {
+    const [isHovered, setIsHovered] = useState(false)
+    const [showTooltip, setShowTooltip] = useState(false)
+
+    useEffect(() => {
+      if (isHovered && !disabled) {
+        const timer = setTimeout(() => setShowTooltip(true), 300)
+        return () => clearTimeout(timer)
+      } else {
+        setShowTooltip(false)
+      }
+    }, [isHovered, disabled])
+
+    return (
+      <motion.div
+        className="relative"
+        whileHover={{ scale: disabled ? 1 : 1.05, y: disabled ? 0 : -1 }}
+        whileTap={{ scale: disabled ? 1 : 0.95 }}
+        transition={{ duration: 0.15 }}
+        onHoverStart={() => !disabled && setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
       >
-        {icon}
-        <span className="hidden sm:inline">{label}</span>
-      </Button>
-    </motion.div>
-  )
+        <Button
+          onClick={onClick}
+          disabled={disabled || isLoading}
+          variant="outline"
+          size="sm"
+          className={cn(
+            "text-xs h-7 px-2 md:px-3 bg-transparent border-border text-foreground",
+            "flex items-center gap-1 lg:bg-background/80 lg:backdrop-blur-sm",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "transition-all duration-200",
+            !disabled && !isLoading && [
+              "hover:bg-accent/80 hover:border-accent",
+              "hover:shadow-[0_2px_12px_rgba(255,255,255,0.15)]",
+              "hover:text-white hover:scale-105",
+              "active:scale-95",
+            ],
+            isLoading && "opacity-70 cursor-wait",
+          )}
+          title={title}
+          aria-label={title}
+        >
+          {isLoading ? (
+            <motion.div
+              className="w-3 h-3 border-2 border-current border-t-transparent rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+            />
+          ) : (
+            icon
+          )}
+          <span className="hidden sm:inline">{label}</span>
+        </Button>
+
+        {/* Tooltip - Only show on desktop */}
+        <AnimatePresence>
+          {showTooltip && !disabled && !isMobile && (
+            <motion.div
+              initial={{ opacity: 0, y: 5, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 5, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none hidden lg:block"
+            >
+              <div className="bg-background/95 backdrop-blur-sm border border-border rounded-md px-2 py-1 text-xs text-foreground whitespace-nowrap shadow-lg">
+                {tooltip}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                  <div className="w-2 h-2 bg-background border-r border-b border-border rotate-45" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    )
+  }
+
+  const [buttonStates, setButtonStates] = useState({
+    loadAsInput: { loading: false, success: false },
+    copy: { loading: false, success: false },
+    download: { loading: false, success: false },
+  })
+
+  // Reset success states after animation
+  useEffect(() => {
+    if (buttonStates.loadAsInput.success) {
+      const timer = setTimeout(() => {
+        setButtonStates((prev) => ({ ...prev, loadAsInput: { ...prev.loadAsInput, success: false } }))
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [buttonStates.loadAsInput.success])
+
+  useEffect(() => {
+    if (buttonStates.copy.success) {
+      const timer = setTimeout(() => {
+        setButtonStates((prev) => ({ ...prev, copy: { ...prev.copy, success: false } }))
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [buttonStates.copy.success])
+
+  useEffect(() => {
+    if (buttonStates.download.success) {
+      const timer = setTimeout(() => {
+        setButtonStates((prev) => ({ ...prev, download: { ...prev.download, success: false } }))
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [buttonStates.download.success])
+
+  const handleLoadAsInput = async () => {
+    setButtonStates((prev) => ({ ...prev, loadAsInput: { loading: true, success: false } }))
+    try {
+      await onLoadAsInput()
+      setButtonStates((prev) => ({ ...prev, loadAsInput: { loading: false, success: true } }))
+    } catch (error) {
+      setButtonStates((prev) => ({ ...prev, loadAsInput: { loading: false, success: false } }))
+    }
+  }
+
+  const handleCopy = async () => {
+    setButtonStates((prev) => ({ ...prev, copy: { loading: true, success: false } }))
+    try {
+      await onCopy()
+      setButtonStates((prev) => ({ ...prev, copy: { loading: false, success: true } }))
+    } catch (error) {
+      setButtonStates((prev) => ({ ...prev, copy: { loading: false, success: false } }))
+    }
+  }
+
+  const handleDownload = async () => {
+    setButtonStates((prev) => ({ ...prev, download: { loading: true, success: false } }))
+    try {
+      await onDownload()
+      setButtonStates((prev) => ({ ...prev, download: { loading: false, success: true } }))
+    } catch (error) {
+      setButtonStates((prev) => ({ ...prev, download: { loading: false, success: false } }))
+    }
+  }
 
   const renderButtons = (className?: string) => (
     <div className={className}>
       <AnimatedButton
-        onClick={onLoadAsInput}
+        onClick={handleLoadAsInput}
         disabled={!generatedImage}
         title="Use as Input"
+        tooltip="Load this image as input for editing"
+        isLoading={buttonStates.loadAsInput.loading}
         icon={
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+          buttonStates.loadAsInput.success ? (
+            <motion.svg
+              className="w-3 h-3 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </motion.svg>
+          ) : (
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          )
         }
         label="Use as Input"
       />
       <AnimatedButton
-        onClick={onCopy}
+        onClick={handleCopy}
         disabled={!generatedImage}
         title="Copy to clipboard"
+        tooltip="Copy image to clipboard"
+        isLoading={buttonStates.copy.loading}
         icon={
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2" />
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2" />
-          </svg>
+          buttonStates.copy.success ? (
+            <motion.svg
+              className="w-3 h-3 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </motion.svg>
+          ) : (
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2" />
+            </svg>
+          )
         }
         label="Copy"
       />
       <AnimatedButton
-        onClick={onDownload}
+        onClick={handleDownload}
         disabled={!generatedImage}
         title="Download image"
+        tooltip="Download image file"
+        isLoading={buttonStates.download.loading}
         icon={
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
+          buttonStates.download.success ? (
+            <motion.svg
+              className="w-3 h-3 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </motion.svg>
+          ) : (
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+          )
         }
         label="Download"
       />
