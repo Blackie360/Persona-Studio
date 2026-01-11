@@ -9,63 +9,79 @@ export async function GET(request: NextRequest) {
     await requireAdmin(request)
 
     // Total generations
-    const totalGenerations = await db
+    const totalGenerationsResult = await db
       .select({ count: count() })
       .from(generationLog)
+    const totalGenerations = totalGenerationsResult[0]?.count || 0
 
     // Total users
-    const totalUsers = await db
+    const totalUsersResult = await db
       .select({ count: count() })
       .from(user)
+    const totalUsers = totalUsersResult[0]?.count || 0
 
     // Blocked users
-    const blockedUsers = await db
+    const blockedUsersResult = await db
       .select({ count: count() })
       .from(blockedUser)
       .where(eq(blockedUser.isActive, true))
+    const blockedUsers = blockedUsersResult[0]?.count || 0
 
     // Generations in last 7 days
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     
-    const recentGenerations = await db
+    const recentGenerationsResult = await db
       .select({ count: count() })
       .from(generationLog)
       .where(gte(generationLog.createdAt, sevenDaysAgo))
+    const recentGenerations = recentGenerationsResult[0]?.count || 0
 
     // Generations by status
-    const generationsByStatus = await db
+    const generationsByStatusResult = await db
       .select({
         status: generationLog.status,
         count: count(),
       })
       .from(generationLog)
       .groupBy(generationLog.status)
+    
+    const generationsByStatus = generationsByStatusResult.reduce((acc, item) => {
+      acc[item.status] = Number(item.count) || 0
+      return acc
+    }, {} as Record<string, number>)
 
     // Generations over time (last 7 days, grouped by day)
-    const generationsOverTime = await db
-      .select({
-        date: sql<string>`DATE(${generationLog.createdAt})`,
-        count: count(),
-      })
-      .from(generationLog)
-      .where(gte(generationLog.createdAt, sevenDaysAgo))
-      .groupBy(sql`DATE(${generationLog.createdAt})`)
-      .orderBy(generationLog.createdAt)
+    // Use PostgreSQL's date_trunc for better compatibility
+    let generationsOverTime: Array<{ date: string; count: number }> = []
+    try {
+      const generationsOverTimeResult = await db
+        .select({
+          date: sql<string>`DATE(${generationLog.createdAt})`.as("date"),
+          count: count(),
+        })
+        .from(generationLog)
+        .where(gte(generationLog.createdAt, sevenDaysAgo))
+        .groupBy(sql`DATE(${generationLog.createdAt})`)
+        .orderBy(sql`DATE(${generationLog.createdAt})`)
+      
+      generationsOverTime = generationsOverTimeResult.map((item) => ({
+        date: item.date,
+        count: Number(item.count) || 0,
+      }))
+    } catch (error) {
+      console.error("Error fetching generations over time:", error)
+      // Return empty array if this query fails
+      generationsOverTime = []
+    }
 
     return NextResponse.json({
-      totalGenerations: totalGenerations[0]?.count || 0,
-      totalUsers: totalUsers[0]?.count || 0,
-      blockedUsers: blockedUsers[0]?.count || 0,
-      recentGenerations: recentGenerations[0]?.count || 0,
-      generationsByStatus: generationsByStatus.reduce((acc, item) => {
-        acc[item.status] = item.count
-        return acc
-      }, {} as Record<string, number>),
-      generationsOverTime: generationsOverTime.map((item) => ({
-        date: item.date,
-        count: item.count,
-      })),
+      totalGenerations,
+      totalUsers,
+      blockedUsers,
+      recentGenerations,
+      generationsByStatus,
+      generationsOverTime,
     })
   } catch (error) {
     console.error("Error fetching admin stats:", error)
