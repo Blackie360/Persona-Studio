@@ -349,6 +349,12 @@ export function ImageCombiner() {
 
       if (isMobile) {
         try {
+          // Ensure document is focused before clipboard access
+          if (document.body) {
+            document.body.focus()
+          }
+          window.focus()
+          await new Promise((resolve) => setTimeout(resolve, 50))
           const pngBlob = await convertToPngBlob(generatedImage.url)
           const clipboardItem = new ClipboardItem({ "image/png": pngBlob })
           await navigator.clipboard.write([clipboardItem])
@@ -383,7 +389,15 @@ export function ImageCombiner() {
       }
 
       setToast({ message: "Copying image...", type: "success" })
+      
+      // Ensure document is focused before clipboard access
+      // Focus the document body to ensure clipboard API has permission
+      if (document.body) {
+        document.body.focus()
+      }
       window.focus()
+      // Small delay to ensure focus takes effect
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const pngBlob = await convertToPngBlob(generatedImage.url)
       const clipboardItem = new ClipboardItem({ "image/png": pngBlob })
@@ -393,7 +407,12 @@ export function ImageCombiner() {
       setTimeout(() => setToast(null), 2000)
     } catch (error) {
       console.error("Error copying image:", error)
-      if (error instanceof Error && error.message.includes("not focused")) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("not focused") ||
+          error.message.includes("Document is not focused") ||
+          error.name === "NotAllowedError")
+      ) {
         setToast({
           message: "Please click on the page first, then try copying again",
           type: "error",
