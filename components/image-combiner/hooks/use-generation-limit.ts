@@ -11,7 +11,6 @@ const RESET_DAYS = 7
 
 interface GenerationData {
   count: number
-  timestamp: number
 }
 
 interface AuthGenerationData {
@@ -31,30 +30,21 @@ export function useGenerationLimit() {
   // Load and validate unauthenticated generation count from localStorage
   const loadGenerationCount = useCallback((): GenerationData => {
     if (typeof window === "undefined") {
-      return { count: 0, timestamp: Date.now() }
+      return { count: 0 }
     }
 
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (!stored) {
-        return { count: 0, timestamp: Date.now() }
+        return { count: 0 }
       }
 
       const data: GenerationData = JSON.parse(stored)
-      const now = Date.now()
-      const daysSince = (now - data.timestamp) / (1000 * 60 * 60 * 24)
-
-      // Reset if 7 days have passed
-      if (daysSince >= RESET_DAYS) {
-        const resetData = { count: 0, timestamp: now }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(resetData))
-        return resetData
-      }
-
+      // No reset logic - once anonymous users use their 2 generations, they must sign up
       return data
     } catch (error) {
       console.error("Error loading generation count:", error)
-      return { count: 0, timestamp: Date.now() }
+      return { count: 0 }
     }
   }, [])
 
@@ -148,7 +138,6 @@ export function useGenerationLimit() {
       const newCount = data.count + 1
       const newData: GenerationData = {
         count: newCount,
-        timestamp: data.timestamp, // Keep original timestamp for 7-day reset
       }
       saveGenerationCount(newData)
       setRemaining(Math.max(0, FREE_LIMIT - newCount))
