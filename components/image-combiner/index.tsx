@@ -11,6 +11,7 @@ import { useAspectRatio } from "./hooks/use-aspect-ratio"
 import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
+import { PaymentModal } from "@/components/payment-modal"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
@@ -113,6 +114,7 @@ export function ImageCombiner() {
   const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -149,6 +151,7 @@ export function ImageCombiner() {
     canGenerate: canGenerateFromLimit,
     decrementOptimistic,
     usageLoading,
+    refreshCredits,
   } = useGenerationLimit()
 
   const { data: session } = useSession()
@@ -214,6 +217,28 @@ export function ImageCombiner() {
       return () => clearTimeout(timer)
     }
   }, [hasImages, canGenerateFromLimit, isAuthenticated, showAuthModal])
+
+  // Show payment modal when authenticated user exhausts free generations
+  useEffect(() => {
+    if (
+      hasImages &&
+      !canGenerateFromLimit &&
+      isAuthenticated &&
+      !showPaymentModal &&
+      !showAuthModal
+    ) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        setShowPaymentModal(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasImages, canGenerateFromLimit, isAuthenticated, showPaymentModal, showAuthModal])
+
+  const handlePaymentSuccess = async () => {
+    await refreshCredits()
+    setShowPaymentModal(false)
+  }
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -964,6 +989,11 @@ export function ImageCombiner() {
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </>
   )
 }
