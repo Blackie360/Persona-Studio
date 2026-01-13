@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, integer } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -134,4 +134,40 @@ export const blockedUser = pgTable("blocked_user", {
 }, (table) => [
   index("blocked_user_userId_idx").on(table.userId),
   index("blocked_user_isActive_idx").on(table.isActive),
+]);
+
+export const payment = pgTable("payment", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  sessionId: text("session_id"),
+  paystackReference: text("paystack_reference").notNull().unique(),
+  phoneNumber: text("phone_number").notNull(),
+  amount: integer("amount").notNull(), // Amount in smallest currency unit (cents/kobo)
+  currency: text("currency").default("KES").notNull(),
+  status: text("status").notNull().default("pending"), // pending, success, failed, cancelled
+  generationsGranted: integer("generations_granted").default(5).notNull(),
+  metadata: text("metadata"), // JSON string for additional data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("payment_userId_idx").on(table.userId),
+  index("payment_paystackReference_idx").on(table.paystackReference),
+  index("payment_status_idx").on(table.status),
+  index("payment_createdAt_idx").on(table.createdAt),
+]);
+
+export const userCredits = pgTable("user_credits", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }).notNull().unique(),
+  paidGenerations: integer("paid_generations").default(0).notNull(),
+  lastUpdated: timestamp("last_updated")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+}, (table) => [
+  index("user_credits_userId_idx").on(table.userId),
 ]);
