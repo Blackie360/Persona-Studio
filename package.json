@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emotion/is-prop-valid": "latest",
     "@hono/node-server": "^1.19.8",
+    "@hono/zod-validator": "^0.7.6",
     "@neondatabase/serverless": "^1.0.2",
     "@paper-design/shaders-react": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
