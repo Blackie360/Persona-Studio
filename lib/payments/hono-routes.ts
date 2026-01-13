@@ -136,6 +136,47 @@ paymentRoutes.post(
   }
 )
 
+paymentRoutes.get("/credits", async (c) => {
+  try {
+    // Get user session
+    const headers = new Headers()
+    const reqHeaders = c.req.raw.headers
+    reqHeaders.forEach((value, key) => {
+      headers.set(key, value)
+    })
+
+    const session = await auth.api.getSession({ headers })
+    const userId = session?.user?.id || null
+
+    if (!userId) {
+      return c.json({ error: "Authentication required" }, 401)
+    }
+
+    // Get user credits
+    const credits = await db
+      .select()
+      .from(userCredits)
+      .where(eq(userCredits.userId, userId))
+      .limit(1)
+
+    const paidGenerations = credits.length > 0 ? credits[0].paidGenerations : 0
+
+    return c.json({
+      paidGenerations,
+      hasCredits: paidGenerations > 0,
+    })
+  } catch (error) {
+    console.error("Credits fetch error:", error)
+    return c.json(
+      {
+        error: "Failed to fetch credits",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    )
+  }
+})
+
 paymentRoutes.post("/webhook", async (c) => {
   try {
     // Get raw body for signature verification
