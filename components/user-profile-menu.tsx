@@ -103,10 +103,13 @@ export function UserProfileMenu({ onToast }: UserProfileMenuProps) {
           onError: (error) => {
             console.error("Delete account error:", error)
             if (onToast) {
-              onToast(
-                error?.message || "Failed to delete account. Please try again.",
-                "error"
-              )
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : typeof error === "object" && error !== null && "message" in error
+                    ? String(error.message)
+                    : "Failed to delete account. Please try again."
+              onToast(errorMessage, "error")
             }
             setIsDeleting(false)
           },
@@ -217,6 +220,7 @@ export function UserProfileMenu({ onToast }: UserProfileMenuProps) {
     </>
   )
 }
+
 
 
 

@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client"
 
 const STORAGE_KEY = "generation_count"
 const STORAGE_KEY_AUTH = "generation_count_auth"
+const STORAGE_KEY_PAID_USED = "paid_generations_used"
 const FREE_LIMIT = 2
 const AUTH_LIMIT = 3 // Additional generations after authentication
 const RESET_DAYS = 7
@@ -26,6 +27,8 @@ export function useGenerationLimit() {
 
   const [remaining, setRemaining] = useState<number>(FREE_LIMIT)
   const [usageLoading, setUsageLoading] = useState(false)
+  const [paidGenerations, setPaidGenerations] = useState<number>(0)
+  const [paidGenerationsUsed, setPaidGenerationsUsed] = useState<number>(0)
 
   // Load and validate unauthenticated generation count from localStorage
   const loadGenerationCount = useCallback((): GenerationData => {
@@ -102,21 +105,83 @@ export function useGenerationLimit() {
     }
   }, [userId])
 
-  // Initialize remaining count
+  // Fetch paid credits from API
+  const fetchPaidCredits = useCallback(async () => {
+    if (!isAuthenticated || !userId) {
+      setPaidGenerations(0)
+      return
+    }
+
+    try {
+      const response = await fetch("/api/payments/credits")
+      if (response.ok) {
+        const data = await response.json()
+        setPaidGenerations(data.paidGenerations || 0)
+      }
+    } catch (error) {
+      console.error("Error fetching paid credits:", error)
+    }
+  }, [isAuthenticated, userId])
+
+  // Load paid generations used from localStorage
+  const loadPaidGenerationsUsed = useCallback((): number => {
+    if (typeof window === "undefined" || !userId) {
+      return 0
+    }
+
+    try {
+      const stored = localStorage.getItem(`${STORAGE_KEY_PAID_USED}_${userId}`)
+      if (!stored) {
+        return 0
+      }
+      return parseInt(stored, 10) || 0
+    } catch (error) {
+      console.error("Error loading paid generations used:", error)
+      return 0
+    }
+  }, [userId])
+
+  // Save paid generations used to localStorage
+  const savePaidGenerationsUsed = useCallback((count: number) => {
+    if (typeof window === "undefined" || !userId) return
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PAID_USED}_${userId}`, count.toString())
+    } catch (error) {
+      console.error("Error saving paid generations used:", error)
+    }
+  }, [userId])
+
+  // Initialize remaining count and fetch paid credits
   useEffect(() => {
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
-      if (authData) {
-        setRemaining(Math.max(0, AUTH_LIMIT - authData.count))
-      } else {
-        // New authenticated session, reset to full auth limit
-        setRemaining(AUTH_LIMIT)
-      }
+      const freeUsed = authData ? authData.count : 0
+      const paidUsed = loadPaidGenerationsUsed()
+      setPaidGenerationsUsed(paidUsed)
+      
+      // Fetch paid credits from API
+      fetchPaidCredits()
+      
+      // Calculate remaining: free limit + paid credits - used
+      // Will be updated when paidGenerations is fetched
+      setRemaining(Math.max(0, AUTH_LIMIT - freeUsed))
     } else {
       const data = loadGenerationCount()
       setRemaining(Math.max(0, FREE_LIMIT - data.count))
+      setPaidGenerations(0)
+      setPaidGenerationsUsed(0)
     }
-  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount])
+  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, loadPaidGenerationsUsed, fetchPaidCredits])
+
+  // Update remaining when paid credits are fetched
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      const authData = loadAuthGenerationCount()
+      const freeUsed = authData ? authData.count : 0
+      const availablePaid = Math.max(0, paidGenerations - paidGenerationsUsed)
+      setRemaining(Math.max(0, AUTH_LIMIT - freeUsed + availablePaid))
+    }
+  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadAuthGenerationCount])
 
   // Decrement count optimistically (for UI updates)
   const decrementOptimistic = useCallback(() => {
@@ -124,15 +189,29 @@ export function useGenerationLimit() {
     
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
-      const currentCount = authData?.count || 0
-      const newCount = currentCount + 1
-      const newData: AuthGenerationData = {
-        count: newCount,
-        userId,
-        timestamp: authData?.timestamp || Date.now(),
+      const freeUsed = authData?.count || 0
+      const paidUsed = paidGenerationsUsed
+      
+      // Check if we should use free generations first
+      if (freeUsed < AUTH_LIMIT) {
+        // Use free generation
+        const newCount = freeUsed + 1
+        const newData: AuthGenerationData = {
+          count: newCount,
+          userId,
+          timestamp: authData?.timestamp || Date.now(),
+        }
+        saveAuthGenerationCount(newData)
+        const availablePaid = Math.max(0, paidGenerations - paidUsed)
+        setRemaining(Math.max(0, AUTH_LIMIT - newCount + availablePaid))
+      } else {
+        // Use paid generation
+        const newPaidUsed = paidUsed + 1
+        savePaidGenerationsUsed(newPaidUsed)
+        setPaidGenerationsUsed(newPaidUsed)
+        const availablePaid = Math.max(0, paidGenerations - newPaidUsed)
+        setRemaining(Math.max(0, availablePaid))
       }
-      saveAuthGenerationCount(newData)
-      setRemaining(Math.max(0, AUTH_LIMIT - newCount))
     } else {
       const data = loadGenerationCount()
       const newCount = data.count + 1
@@ -144,10 +223,15 @@ export function useGenerationLimit() {
     }
     
     setUsageLoading(false)
-  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, saveGenerationCount, saveAuthGenerationCount])
+  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadGenerationCount, loadAuthGenerationCount, saveGenerationCount, saveAuthGenerationCount, savePaidGenerationsUsed])
 
   // Check if user can generate
   const canGenerate = remaining > 0
+
+  // Refresh paid credits (useful after payment)
+  const refreshCredits = useCallback(async () => {
+    await fetchPaidCredits()
+  }, [fetchPaidCredits])
 
   return {
     isAuthenticated,
@@ -155,6 +239,8 @@ export function useGenerationLimit() {
     canGenerate,
     decrementOptimistic,
     usageLoading,
+    paidGenerations,
+    refreshCredits,
   }
 }
 

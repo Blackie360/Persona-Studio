@@ -11,6 +11,7 @@ import { useAspectRatio } from "./hooks/use-aspect-ratio"
 import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
+import { PaymentModal } from "@/components/payment-modal"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
@@ -29,14 +30,26 @@ if (typeof window !== "undefined") {
   console.error = (...args: unknown[]) => {
     // Check if any argument contains the noiseScale/noiseOffset warning
     const errorMessage = args
-      .map((arg) => (typeof arg === "string" ? arg : String(arg)))
+      .map((arg) => {
+        if (typeof arg === "string") return arg
+        if (arg instanceof Error) return arg.message
+        try {
+          return JSON.stringify(arg)
+        } catch {
+          return String(arg)
+        }
+      })
       .join(" ")
     
+    // Suppress warnings about noiseScale and noiseOffset props
     if (
       errorMessage.includes("noiseScale") ||
       errorMessage.includes("noiseOffset") ||
       errorMessage.includes("noisescale") ||
-      errorMessage.includes("noiseoffset")
+      errorMessage.includes("noiseoffset") ||
+      errorMessage.includes("React does not recognize") ||
+      errorMessage.includes("lowercase `noisescale`") ||
+      errorMessage.includes("lowercase `noiseoffset`")
     ) {
       // Suppress this specific warning from Dithering component
       return
@@ -70,6 +83,7 @@ const DitheringWrapper = memo((props: {
   } = props
 
   // Build props object with only valid props for the Dithering component
+  // Use a ref to prevent React from seeing these props in the DOM
   const ditheringProps: {
     color1?: number[]
     color2?: number[]
@@ -92,6 +106,7 @@ const DitheringWrapper = memo((props: {
 
   return (
     <div className="w-full h-full" suppressHydrationWarning>
+      {/* eslint-disable-next-line react/jsx-props-no-spreading */}
       <Dithering {...ditheringProps} />
     </div>
   )
@@ -113,6 +128,7 @@ export function ImageCombiner() {
   const [dropZoneHover, setDropZoneHover] = useState<1 | 2 | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -149,6 +165,7 @@ export function ImageCombiner() {
     canGenerate: canGenerateFromLimit,
     decrementOptimistic,
     usageLoading,
+    refreshCredits,
   } = useGenerationLimit()
 
   const { data: session } = useSession()
@@ -214,6 +231,28 @@ export function ImageCombiner() {
       return () => clearTimeout(timer)
     }
   }, [hasImages, canGenerateFromLimit, isAuthenticated, showAuthModal])
+
+  // Show payment modal when authenticated user exhausts free generations
+  useEffect(() => {
+    if (
+      hasImages &&
+      !canGenerateFromLimit &&
+      isAuthenticated &&
+      !showPaymentModal &&
+      !showAuthModal
+    ) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        setShowPaymentModal(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasImages, canGenerateFromLimit, isAuthenticated, showPaymentModal, showAuthModal])
+
+  const handlePaymentSuccess = async () => {
+    await refreshCredits()
+    setShowPaymentModal(false)
+  }
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -964,6 +1003,11 @@ export function ImageCombiner() {
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </>
   )
 }

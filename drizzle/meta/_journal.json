@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1768059810753,
+      "tag": "0000_colossal_falcon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768065729934,
+      "tag": "0001_modern_thunderball",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768070000000,
+      "tag": "0002_add_payment_tables",
+      "breakpoints": true
+    }
+  ]
+}
