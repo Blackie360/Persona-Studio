@@ -12,6 +12,7 @@ import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
 import { PaymentModal } from "@/components/payment-modal"
+import { PricingModal } from "@/components/pricing-modal"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
@@ -129,6 +130,7 @@ export function ImageCombiner() {
   const [showHowItWorks, setShowHowItWorks] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPricingModal, setShowPricingModal] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -790,6 +792,12 @@ export function ImageCombiner() {
             </div>
 
             <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+              <button
+                onClick={() => setShowPricingModal(true)}
+                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                Pricing 💰
+              </button>
               {session?.user ? (
                 <UserProfileMenu onToast={showToast} />
               ) : (
@@ -1003,6 +1011,14 @@ export function ImageCombiner() {
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        onSuccess={() => {
+          setShowPricingModal(false)
+          refreshCredits()
+        }}
+      />
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
