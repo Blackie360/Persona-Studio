@@ -1,19 +1,26 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { ABeeZee, Adamina, Chivo_Mono } from "next/font/google"
 import { Suspense } from "react"
 import { Analytics } from "@vercel/analytics/react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import "./globals.css"
 
-const inter = Inter({
+const abeeZee = ABeeZee({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["400"],
+  variable: "--font-sans-serif",
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const adamina = Adamina({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+  weight: ["400"],
+  variable: "--font-serif",
+})
+
+const chivoMono = Chivo_Mono({
+  subsets: ["latin"],
+  variable: "--font-monospace",
 })
 
 export const metadata: Metadata = {
@@ -97,7 +104,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`dark ${abeeZee.variable} ${adamina.variable} ${chivoMono.variable}`}
       suppressHydrationWarning
       style={{ backgroundColor: "#000000" }}
     >
@@ -105,7 +112,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="font-mono antialiased" style={{ backgroundColor: "#000000" }} suppressHydrationWarning>
+      <body className="font-sans antialiased" style={{ backgroundColor: "#000000" }} suppressHydrationWarning>
         <ErrorBoundary>
           <Suspense fallback={null}>{children}</Suspense>
         </ErrorBoundary>
