@@ -5,36 +5,13 @@ import { nanoid } from "nanoid"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { payment, userCredits } from "@/lib/db/schema"
-import { initiateMpesaCharge, verifyWebhookSignature } from "./paystack"
+import { initializeTransaction, verifyWebhookSignature } from "./paystack"
 import { eq } from "drizzle-orm"
 
 export const paymentRoutes = new Hono()
 
-const normalizeKenyanPhone = (input: string) => {
-  const digitsOnly = input.replace(/\D/g, "")
-  if (digitsOnly.startsWith("0") && digitsOnly.length === 10) {
-    return `+254${digitsOnly.slice(1)}`
-  }
-  if (digitsOnly.startsWith("254") && digitsOnly.length === 12) {
-    return `+${digitsOnly}`
-  }
-  if (digitsOnly.startsWith("7") && digitsOnly.length === 9) {
-    return `+254${digitsOnly}`
-  }
-  return null
-}
-
-// Phone number validation schema (Kenyan format: +254712345678)
-const phoneNumberSchema = z
-  .string()
-  .transform((value) => normalizeKenyanPhone(value))
-  .refine((value): value is string => Boolean(value), {
-    message: "Phone number must be a Kenyan mobile (e.g. 0712345678 or +254712345678)",
-  })
-
-const initiatePaymentSchema = z.object({
-  phoneNumber: phoneNumberSchema,
-})
+// No phone number required - Paystack checkout will collect it
+const initiatePaymentSchema = z.object({})
 
 paymentRoutes.post(
   "/initiate",
@@ -57,7 +34,10 @@ paymentRoutes.post(
         return c.json({ error: "Authentication required" }, 401)
       }
 
-      const { phoneNumber } = c.req.valid("json")
+      if (!userEmail) {
+        return c.json({ error: "Email required for payment" }, 400)
+      }
+
       const amount = 5 // KES 5
       const generationsGranted = 5
 
@@ -65,12 +45,16 @@ paymentRoutes.post(
       const paymentId = nanoid()
       const paystackReference = `ref_${Date.now()}_${paymentId}`
 
+      // Get base URL for callback
+      const origin = c.req.header("origin") || process.env.BETTER_AUTH_URL || "http://localhost:3000"
+      const callbackUrl = `${origin}/api/payments/callback`
+
       await db.insert(payment).values({
         id: paymentId,
         userId,
         sessionId,
         paystackReference,
-        phoneNumber,
+        phoneNumber: null, // Will be populated from webhook after payment
         amount: amount * 100, // Convert to smallest currency unit
         currency: "KES",
         status: "pending",
@@ -78,12 +62,14 @@ paymentRoutes.post(
         metadata: JSON.stringify({ userEmail }),
       })
 
-      // Initiate M-Pesa STK Push via Paystack
+      // Initialize Paystack transaction to get checkout URL
       try {
-        const paystackResponse = await initiateMpesaCharge({
-          phoneNumber,
-          amount,
-          email: userEmail || "user@example.com",
+        const paystackResponse = await initializeTransaction({
+          email: userEmail,
+          amount: amount * 100, // KES 5.00 = 500 in smallest unit
+          currency: "KES",
+          channels: ["mobile_money"], // Prioritize M-Pesa
+          callback_url: callbackUrl,
           metadata: {
             paymentId,
             userId,
@@ -107,7 +93,7 @@ paymentRoutes.post(
           )
         }
 
-        // Update payment with Paystack reference if different
+        // Update payment with Paystack reference
         if (paystackResponse.data.reference !== paystackReference) {
           await db
             .update(payment)
@@ -121,8 +107,9 @@ paymentRoutes.post(
         return c.json({
           success: true,
           paymentId,
+          authorizationUrl: paystackResponse.data.authorization_url,
           reference: paystackResponse.data.reference,
-          message: "Payment initiated. Please check your phone for the M-Pesa prompt.",
+          message: "Redirecting to Paystack checkout...",
         })
       } catch (error) {
         // Update payment status to failed
@@ -152,6 +139,38 @@ paymentRoutes.post(
     }
   }
 )
+
+paymentRoutes.get("/callback", async (c) => {
+  try {
+    const reference = c.req.query("reference")
+    
+    if (!reference) {
+      // Redirect to home page with error
+      return c.redirect("/?payment=error&message=Missing reference")
+    }
+
+    // Verify payment status
+    const { verifyPayment } = await import("./paystack")
+    try {
+      const verification = await verifyPayment(reference)
+      
+      if (verification.status && verification.data.status === "success") {
+        // Payment successful - redirect to home with success message
+        return c.redirect("/?payment=success&reference=" + reference)
+      } else {
+        // Payment failed or pending
+        return c.redirect("/?payment=failed&reference=" + reference)
+      }
+    } catch (error) {
+      console.error("Payment verification error:", error)
+      // Still redirect but with error status
+      return c.redirect("/?payment=error&reference=" + reference)
+    }
+  } catch (error) {
+    console.error("Callback error:", error)
+    return c.redirect("/?payment=error")
+  }
+})
 
 paymentRoutes.get("/credits", async (c) => {
   try {
@@ -239,11 +258,15 @@ paymentRoutes.post("/webhook", async (c) => {
         return c.json({ message: "Payment already processed" })
       }
 
-      // Update payment status
+      // Extract phone number from Paystack data if available
+      const phoneNumber = data.customer?.phone || data.authorization?.mobile_money?.phone || null
+
+      // Update payment status and phone number
       await db
         .update(payment)
         .set({
           status: "success",
+          phoneNumber: phoneNumber || paymentRecord.phoneNumber, // Update if available, keep existing otherwise
           completedAt: new Date(),
           updatedAt: new Date(),
         })

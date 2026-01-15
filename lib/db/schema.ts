@@ -141,7 +141,7 @@ export const payment = pgTable("payment", {
   userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   sessionId: text("session_id"),
   paystackReference: text("paystack_reference").notNull().unique(),
-  phoneNumber: text("phone_number").notNull(),
+  phoneNumber: text("phone_number"), // Nullable - will be populated from Paystack webhook after payment
   amount: integer("amount").notNull(), // Amount in smallest currency unit (cents/kobo)
   currency: text("currency").default("KES").notNull(),
   status: text("status").notNull().default("pending"), // pending, success, failed, cancelled
