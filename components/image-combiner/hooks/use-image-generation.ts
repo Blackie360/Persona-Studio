@@ -149,6 +149,35 @@ export function useImageGeneration({
   const [selectedGenerationId, setSelectedGenerationId] = useState<string | null>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
 
+  const getErrorMessage = async (response: Response, rawBody?: string) => {
+    if (response.status === 404) {
+      return "Image not found. Please re-upload the photo and try again."
+    }
+
+    if (rawBody) {
+      try {
+        const errorData = JSON.parse(rawBody)
+        if (errorData?.error || errorData?.details) {
+          return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
+        }
+      } catch (error) {
+        if (rawBody.trim()) return rawBody
+      }
+    }
+
+    try {
+      const errorData = await response.json()
+      if (errorData?.error || errorData?.details) {
+        return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
+      }
+    } catch (error) {
+      const text = await response.text().catch(() => "")
+      if (text) return text
+    }
+
+    return `Request failed with status ${response.status} ${response.statusText}`.trim()
+  }
+
   const cancelGeneration = (generationId: string) => {
     const generation = generations.find((g) => g.id === generationId)
     if (generation?.abortController) {
@@ -245,16 +274,25 @@ export function useImageGeneration({
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        const errorBody = await response.text().catch(() => "")
+        let errorData: { error?: string; details?: string } | null = null
+        if (errorBody) {
+          try {
+            errorData = JSON.parse(errorBody)
+          } catch (parseError) {
+            errorData = null
+          }
+        }
 
-        if (errorData.error === "Configuration error" && errorData.details?.includes("AI_GATEWAY_API_KEY")) {
+        if (errorData?.error === "Configuration error" && errorData.details?.includes("AI_GATEWAY_API_KEY")) {
           clearInterval(progressInterval)
           setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
           onToast("AI_GATEWAY_API_KEY is not configured. Add the key to continue.", "error")
           return
         }
 
-        throw new Error(`${errorData.error}${errorData.details ? `: ${errorData.details}` : ""}`)
+        const errorMessage = await getErrorMessage(response, errorBody)
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()

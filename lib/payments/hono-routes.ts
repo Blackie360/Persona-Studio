@@ -5,15 +5,32 @@ import { nanoid } from "nanoid"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { payment, userCredits } from "@/lib/db/schema"
-import { initiateSTKPush, verifyWebhookSignature } from "./paystack"
+import { initiateMpesaCharge, verifyWebhookSignature } from "./paystack"
 import { eq } from "drizzle-orm"
 
 export const paymentRoutes = new Hono()
 
-// Phone number validation schema (Kenyan format: 254712345678)
+const normalizeKenyanPhone = (input: string) => {
+  const digitsOnly = input.replace(/\D/g, "")
+  if (digitsOnly.startsWith("0") && digitsOnly.length === 10) {
+    return `+254${digitsOnly.slice(1)}`
+  }
+  if (digitsOnly.startsWith("254") && digitsOnly.length === 12) {
+    return `+${digitsOnly}`
+  }
+  if (digitsOnly.startsWith("7") && digitsOnly.length === 9) {
+    return `+254${digitsOnly}`
+  }
+  return null
+}
+
+// Phone number validation schema (Kenyan format: +254712345678)
 const phoneNumberSchema = z
   .string()
-  .regex(/^254\d{9}$/, "Phone number must be in format 254712345678")
+  .transform((value) => normalizeKenyanPhone(value))
+  .refine((value): value is string => Boolean(value), {
+    message: "Phone number must be a Kenyan mobile (e.g. 0712345678 or +254712345678)",
+  })
 
 const initiatePaymentSchema = z.object({
   phoneNumber: phoneNumberSchema,
@@ -54,19 +71,19 @@ paymentRoutes.post(
         sessionId,
         paystackReference,
         phoneNumber,
-        amount: amount * 100, // Convert to pesewas
+        amount: amount * 100, // Convert to smallest currency unit
         currency: "KES",
         status: "pending",
         generationsGranted,
         metadata: JSON.stringify({ userEmail }),
       })
 
-      // Initiate STK push with Paystack
+      // Initiate M-Pesa STK Push via Paystack
       try {
-        const paystackResponse = await initiateSTKPush({
+        const paystackResponse = await initiateMpesaCharge({
           phoneNumber,
           amount,
-          email: userEmail || undefined,
+          email: userEmail || "user@example.com",
           metadata: {
             paymentId,
             userId,
@@ -105,7 +122,7 @@ paymentRoutes.post(
           success: true,
           paymentId,
           reference: paystackResponse.data.reference,
-          message: "Payment initiated. Please check your phone for M-Pesa prompt.",
+          message: "Payment initiated. Please check your phone for the M-Pesa prompt.",
         })
       } catch (error) {
         // Update payment status to failed

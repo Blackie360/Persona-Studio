@@ -1,5 +1,5 @@
 /**
- * Paystack API client for M-Pesa STK Push payments
+ * Paystack API client for M-Pesa via Paystack
  */
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
@@ -10,20 +10,20 @@ if (!PAYSTACK_SECRET_KEY) {
   console.warn("PAYSTACK_SECRET_KEY is not set")
 }
 
-export interface InitiateSTKPushRequest {
-  phoneNumber: string // Format: 254712345678
-  amount: number // Amount in KES (will be converted to pesewas)
-  email?: string
+export interface InitiateMpesaChargeRequest {
+  phoneNumber: string // Format: +254712345678 or 254712345678
+  amount: number // Amount in KES (will be converted to smallest unit)
+  email: string
   metadata?: Record<string, unknown>
 }
 
-export interface InitiateSTKPushResponse {
+export interface InitiateMpesaChargeResponse {
   status: boolean
   message: string
   data: {
-    authorization_url: string
-    access_code: string
     reference: string
+    status: string
+    display_text?: string
   }
 }
 
@@ -64,18 +64,18 @@ export interface VerifyPaymentResponse {
 }
 
 /**
- * Initiate M-Pesa STK Push payment
+ * Initiate M-Pesa STK Push via Paystack /charge
  */
-export async function initiateSTKPush(
-  request: InitiateSTKPushRequest
-): Promise<InitiateSTKPushResponse> {
+export async function initiateMpesaCharge(
+  request: InitiateMpesaChargeRequest
+): Promise<InitiateMpesaChargeResponse> {
   if (!PAYSTACK_SECRET_KEY) {
     throw new Error("PAYSTACK_SECRET_KEY is not configured")
   }
 
-  // Convert amount from KES to pesewas (smallest currency unit)
-  // KES 5 = 500 pesewas
-  const amountInPesewas = request.amount * 100
+  // Convert amount from KES to smallest currency unit
+  // KES 5 = 500
+  const amountInSmallestUnit = request.amount * 100
 
   const response = await fetch(`${PAYSTACK_BASE_URL}/charge`, {
     method: "POST",
@@ -84,8 +84,8 @@ export async function initiateSTKPush(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      email: request.email || `user@example.com`,
-      amount: amountInPesewas,
+      email: request.email,
+      amount: amountInSmallestUnit,
       currency: "KES",
       mobile_money: {
         phone: request.phoneNumber,
@@ -130,18 +130,15 @@ export async function verifyPayment(reference: string): Promise<VerifyPaymentRes
 /**
  * Verify webhook signature
  */
-export function verifyWebhookSignature(
-  payload: string,
-  signature: string
-): boolean {
-  if (!PAYSTACK_SECRET_KEY || !process.env.PAYSTACK_WEBHOOK_SECRET) {
-    console.warn("Webhook secret not configured, skipping signature verification")
+export function verifyWebhookSignature(payload: string, signature: string): boolean {
+  if (!PAYSTACK_SECRET_KEY) {
+    console.warn("PAYSTACK_SECRET_KEY is not configured, skipping signature verification")
     return true // In development, allow without verification
   }
 
   const crypto = require("crypto")
   const hash = crypto
-    .createHmac("sha512", process.env.PAYSTACK_WEBHOOK_SECRET)
+    .createHmac("sha512", PAYSTACK_SECRET_KEY)
     .update(payload)
     .digest("hex")
 

@@ -16,22 +16,18 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-
   const formatPhoneNumber = (value: string): string => {
-    // Remove all non-digits
     const digits = value.replace(/\D/g, "")
-    
-    // If starts with 0, replace with 254
     if (digits.startsWith("0")) {
-      return "254" + digits.slice(1)
+      return "+254" + digits.slice(1)
     }
-    
-    // If doesn't start with 254, add it
-    if (!digits.startsWith("254")) {
-      return "254" + digits
+    if (digits.startsWith("254")) {
+      return "+" + digits
     }
-    
-    return digits.slice(0, 12) // Max 12 digits (254 + 9 digits)
+    if (digits.startsWith("7")) {
+      return "+254" + digits
+    }
+    return digits.length > 0 ? `+${digits}` : ""
   }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,14 +36,14 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
     setError(null)
   }
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
 
-    // Validate phone number format (254XXXXXXXXX)
-    if (!phoneNumber.match(/^254\d{9}$/)) {
-      setError("Please enter a valid Kenyan phone number (e.g., 254712345678)")
+    if (!phoneNumber.match(/^\+254\d{9}$/)) {
+      setError("Please enter a valid Kenyan phone number (e.g., +254712345678)")
       setIsLoading(false)
       return
     }
@@ -68,8 +64,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
       }
 
       setSuccess(true)
-      
-      // Poll for payment status (optional - can also rely on webhook)
+
       // For now, just show success message
       setTimeout(() => {
         onSuccess?.()
@@ -112,7 +107,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
               <Input
                 id="phone"
                 type="tel"
-                placeholder="254712345678"
+                placeholder="+254712345678"
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 disabled={isLoading}
@@ -120,7 +115,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
                 required
               />
               <p className="text-xs text-gray-500">
-                Enter your M-Pesa registered phone number (format: 254712345678)
+                Enter your M-Pesa registered phone number (format: +254712345678)
               </p>
             </div>
 
@@ -133,7 +128,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             <div className="flex flex-col gap-2">
               <Button
                 type="submit"
-                disabled={isLoading || !phoneNumber.match(/^254\d{9}$/)}
+                disabled={isLoading || !phoneNumber.match(/^\+254\d{9}$/)}
                 className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
               >
                 {isLoading ? "Initiating Payment..." : "Pay KES 5 via M-Pesa"}
