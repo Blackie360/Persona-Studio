@@ -33,7 +33,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         throw new Error(data.message || data.error || "Payment initiation failed")
       }
 
-      // Redirect to Paystack checkout page
+      // Redirect to checkout page
       if (data.authorizationUrl) {
         window.location.href = data.authorizationUrl
       } else {
@@ -59,7 +59,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             Purchase More Generations
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Pay KES 5 via Paystack to unlock 5 additional generations. You'll be redirected to Paystack's secure checkout page.
+            Pay KES 5 via M-Pesa to unlock 5 additional generations. You'll be redirected to our secure checkout page.
           </DialogDescription>
         </DialogHeader>
         
@@ -74,12 +74,12 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             <Button
               onClick={handlePay}
               disabled={isLoading}
-              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
             >
-              {isLoading ? "Redirecting to Paystack..." : "Pay with Paystack"}
+              {isLoading ? "Redirecting to checkout..." : "Pay via M-Pesa"}
             </Button>
             <p className="text-xs text-gray-500 text-center">
-              You'll be redirected to Paystack's checkout page where you can pay via M-Pesa or other payment methods
+              You'll be redirected to the checkout page to complete your M-Pesa payment
             </p>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface User {
   id: string
@@ -79,98 +80,145 @@ export function UsersTable({ page: initialPage = 1, limit = 50 }: UsersTableProp
 
   return (
     <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="text-white">Users</CardTitle>
+      <CardHeader className="pb-3 sm:pb-6">
+        <CardTitle className="text-white text-sm sm:text-base">Users</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-gray-400">Loading users...</div>
+          <div className="space-y-4">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-700">
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">User</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Email</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Generations</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Joined</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <TableRow key={i} className="border-gray-700">
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-8 w-8 rounded-full bg-gray-800" />
+                            <Skeleton className="h-4 w-24 bg-gray-800" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-32 bg-gray-800" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-12 bg-gray-800" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-16 bg-gray-800" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-20 bg-gray-800" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-8 w-20 bg-gray-800" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">User</TableHead>
-                    <TableHead className="text-gray-300">Email</TableHead>
-                    <TableHead className="text-gray-300">Generations</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Joined</TableHead>
-                    <TableHead className="text-gray-300">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id} className="border-gray-700">
-                      <TableCell className="text-white">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.image || undefined} />
-                            <AvatarFallback className="bg-gray-700 text-gray-300">
-                              {user.name?.charAt(0)?.toUpperCase() || "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{user.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-300">{user.email}</TableCell>
-                      <TableCell className="text-white">{user.generationCount}</TableCell>
-                      <TableCell>
-                        {user.isBlocked ? (
-                          <Badge variant="destructive">Blocked</Badge>
-                        ) : (
-                          <Badge variant="default">Active</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {user.isBlocked ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleUnblock(user.id)}
-                            className="text-white border-gray-700 hover:bg-gray-800"
-                          >
-                            Unblock
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleBlock(user.id)}
-                          >
-                            Block
-                          </Button>
-                        )}
-                      </TableCell>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-700">
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">User</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Email</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Generations</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Joined</TableHead>
+                      <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} className="border-gray-700">
+                        <TableCell className="text-white text-xs sm:text-sm">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
+                              <AvatarImage src={user.image || undefined} />
+                              <AvatarFallback className="bg-gray-700 text-gray-300 text-xs sm:text-sm">
+                                {user.name?.charAt(0)?.toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate max-w-[100px] sm:max-w-none">{user.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-gray-300 text-xs sm:text-sm">
+                          <div className="max-w-[150px] sm:max-w-none truncate">{user.email}</div>
+                        </TableCell>
+                        <TableCell className="text-white text-xs sm:text-sm">{user.generationCount}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.isBlocked ? "destructive" : "default"} className="text-xs">
+                            {user.isBlocked ? "Blocked" : "Active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-400 text-xs sm:text-sm whitespace-nowrap">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {user.isBlocked ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleUnblock(user.id)}
+                              className="text-white border-gray-700 hover:bg-gray-800 text-xs sm:text-sm"
+                            >
+                              Unblock
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleBlock(user.id)}
+                              className="text-xs sm:text-sm"
+                            >
+                              Block
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
             {users.length === 0 && (
-              <div className="text-center text-gray-400 py-8">No users found</div>
+              <div className="text-center text-gray-400 py-8 text-sm">No users found</div>
             )}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 mt-4">
                 <Button
                   variant="outline"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="text-white border-gray-700"
+                  className="text-white border-gray-700 text-xs sm:text-sm w-full sm:w-auto"
                 >
                   Previous
                 </Button>
-                <span className="text-gray-400">
+                <span className="text-gray-400 text-xs sm:text-sm">
                   Page {page} of {totalPages}
                 </span>
                 <Button
                   variant="outline"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="text-white border-gray-700"
+                  className="text-white border-gray-700 text-xs sm:text-sm w-full sm:w-auto"
                 >
                   Next
                 </Button>

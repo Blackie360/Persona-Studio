@@ -7,6 +7,7 @@ import type { Generation } from "./types"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import Image from "next/image"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface GenerationHistoryProps {
   generations: Generation[]
@@ -65,8 +66,13 @@ export function GenerationHistory({
         )}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center w-full h-20 md:h-28 text-gray-400">
-            <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin" />
+          <div className="flex gap-1 items-end w-full h-20 md:h-28">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton
+                key={i}
+                className="w-18 h-18 md:w-24 md:h-24 bg-gray-800/50 border border-gray-700"
+              />
+            ))}
           </div>
         ) : generations.length === 0 ? (
           <div className="flex items-center justify-center w-full h-20 md:h-28 text-gray-500 text-xs md:text-sm">

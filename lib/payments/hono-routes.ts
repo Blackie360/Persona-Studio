@@ -10,8 +10,12 @@ import { eq } from "drizzle-orm"
 
 export const paymentRoutes = new Hono()
 
-// No phone number required - Paystack checkout will collect it
-const initiatePaymentSchema = z.object({})
+// Payment schema - accepts optional plan parameters and email for unauthenticated users
+const initiatePaymentSchema = z.object({
+  amount: z.number().optional(), // Amount in KES (e.g., 5 or 100)
+  generationsGranted: z.number().optional(), // Number of generations (e.g., 5 or 20)
+  email: z.string().email().optional(), // Email for unauthenticated users
+})
 
 paymentRoutes.post(
   "/initiate",
@@ -28,18 +32,42 @@ paymentRoutes.post(
       const session = await auth.api.getSession({ headers })
       const userId = session?.user?.id || null
       const sessionId = session?.session?.id || null
-      const userEmail = session?.user?.email || null
+      const sessionUserEmail = session?.user?.email || null
 
-      if (!userId) {
-        return c.json({ error: "Authentication required" }, 401)
-      }
+      // Get request body (validated by zValidator)
+      const body = c.req.valid("json")
+      const requestEmail = body.email || null
+      const requestAmount = body.amount || null
+      const requestGenerations = body.generationsGranted || null
+
+      // Determine email - use session email if authenticated, otherwise use provided email
+      const userEmail = sessionUserEmail || requestEmail
 
       if (!userEmail) {
         return c.json({ error: "Email required for payment" }, 400)
       }
 
-      const amount = 5 // KES 5
-      const generationsGranted = 5
+      // Determine amount and generations - use provided values or defaults
+      let amount: number
+      let generationsGranted: number
+
+      if (requestAmount && requestGenerations) {
+        // Use provided values
+        amount = requestAmount
+        generationsGranted = requestGenerations
+      } else if (requestAmount === 5 || (!requestAmount && !requestGenerations)) {
+        // Default plan: KES 5 for 5 generations
+        amount = 5
+        generationsGranted = 5
+      } else if (requestAmount === 100) {
+        // Plan 2: KES 100 for 20 generations
+        amount = 100
+        generationsGranted = 20
+      } else {
+        // Fallback to default
+        amount = 5
+        generationsGranted = 5
+      }
 
       // Create payment record
       const paymentId = nanoid()
@@ -51,7 +79,7 @@ paymentRoutes.post(
 
       await db.insert(payment).values({
         id: paymentId,
-        userId,
+        userId, // null for unauthenticated users
         sessionId,
         paystackReference,
         phoneNumber: null, // Will be populated from webhook after payment
@@ -59,7 +87,12 @@ paymentRoutes.post(
         currency: "KES",
         status: "pending",
         generationsGranted,
-        metadata: JSON.stringify({ userEmail }),
+        metadata: JSON.stringify({ 
+          userEmail,
+          isUnauthenticated: !userId,
+          amount,
+          generationsGranted,
+        }),
       })
 
       // Initialize Paystack transaction to get checkout URL
@@ -155,8 +188,23 @@ paymentRoutes.get("/callback", async (c) => {
       const verification = await verifyPayment(reference)
       
       if (verification.status && verification.data.status === "success") {
-        // Payment successful - redirect to home with success message
-        return c.redirect("/?payment=success&reference=" + reference)
+        // Check if payment was made by an unauthenticated user
+        const payments = await db
+          .select()
+          .from(payment)
+          .where(eq(payment.paystackReference, reference))
+          .limit(1)
+
+        const paymentRecord = payments.length > 0 ? payments[0] : null
+        const isUnauthenticated = paymentRecord && !paymentRecord.userId
+
+        if (isUnauthenticated) {
+          // Redirect to home with signup prompt
+          return c.redirect("/?payment=success&signup=true&reference=" + reference)
+        } else {
+          // Payment successful - redirect to home with success message
+          return c.redirect("/?payment=success&reference=" + reference)
+        }
       } else {
         // Payment failed or pending
         return c.redirect("/?payment=failed&reference=" + reference)
@@ -299,6 +347,61 @@ paymentRoutes.post("/webhook", async (c) => {
             paidGenerations: paymentRecord.generationsGranted,
             lastUpdated: new Date(),
           })
+        }
+      } else {
+        // For unauthenticated users, try to link payment to account if user signs up later
+        // Extract email from metadata
+        try {
+          const metadata = paymentRecord.metadata ? JSON.parse(paymentRecord.metadata) : {}
+          const paymentEmail = metadata.userEmail
+
+          if (paymentEmail) {
+            // Try to find user by email and link credits
+            const { user } = await import("@/lib/db/schema")
+            const users = await db
+              .select()
+              .from(user)
+              .where(eq(user.email, paymentEmail))
+              .limit(1)
+
+            if (users.length > 0) {
+              const foundUserId = users[0].id
+              
+              // Update payment with userId
+              await db
+                .update(payment)
+                .set({ userId: foundUserId, updatedAt: new Date() })
+                .where(eq(payment.id, paymentRecord.id))
+
+              // Grant credits to found user
+              const existingCredits = await db
+                .select()
+                .from(userCredits)
+                .where(eq(userCredits.userId, foundUserId))
+                .limit(1)
+
+              if (existingCredits.length > 0) {
+                await db
+                  .update(userCredits)
+                  .set({
+                    paidGenerations:
+                      existingCredits[0].paidGenerations + paymentRecord.generationsGranted,
+                    lastUpdated: new Date(),
+                  })
+                  .where(eq(userCredits.userId, foundUserId))
+              } else {
+                await db.insert(userCredits).values({
+                  id: nanoid(),
+                  userId: foundUserId,
+                  paidGenerations: paymentRecord.generationsGranted,
+                  lastUpdated: new Date(),
+                })
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error linking unauthenticated payment:", error)
+          // Continue - credits will be linked when user signs up
         }
       }
 

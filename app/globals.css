@@ -38,8 +38,6 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #333333;
   --sidebar-ring: #444444;
-  --font-inter: "Inter", sans-serif;
-  --font-jetbrains-mono: "JetBrains Mono", monospace;
 }
 
 /* Dark mode same as root for dark-only app */
@@ -79,8 +77,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains-mono);
+  --font-sans: var(--font-sans-serif);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-monospace);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -126,11 +125,23 @@
 
   html {
     background-color: #000000 !important;
+    font-family: var(--font-sans-serif), sans-serif;
   }
 
   body {
     @apply bg-background text-foreground;
     background-color: #000000 !important;
+    font-family: var(--font-sans-serif), sans-serif;
+  }
+
+  /* Apply serif font to headings and specific elements */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif), serif;
+  }
+
+  /* Apply monospace font to code and specific elements */
+  code, pre, kbd, samp {
+    font-family: var(--font-monospace), monospace;
   }
 
   .shader-background {
@@ -168,5 +179,17 @@
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
+  }
+
+  .font-sans-serif {
+    font-family: var(--font-sans-serif), sans-serif;
+  }
+
+  .font-serif {
+    font-family: var(--font-serif), serif;
+  }
+
+  .font-monospace {
+    font-family: var(--font-monospace), monospace;
   }
 }

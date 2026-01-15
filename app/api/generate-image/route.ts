@@ -2,9 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
 import { logGenerationStart, logGenerationComplete } from "@/lib/generation-logger"
 import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { blockedUser } from "@/lib/db/schema"
-import { eq, and, or } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
@@ -36,33 +33,6 @@ export async function POST(request: NextRequest) {
                      request.headers.get("x-real-ip") || 
                      "unknown"
     const userAgent = request.headers.get("user-agent") || "unknown"
-
-    // Check if user is blocked
-    const blocks = await db
-      .select()
-      .from(blockedUser)
-      .where(
-        and(
-          eq(blockedUser.isActive, true),
-          or(
-            userId ? eq(blockedUser.userId, userId) : undefined,
-            userEmail ? eq(blockedUser.email, userEmail) : undefined,
-            sessionId ? eq(blockedUser.sessionId, sessionId) : undefined
-          )!
-        )
-      )
-      .limit(1)
-
-    if (blocks.length > 0) {
-      const block = blocks[0]
-      return NextResponse.json<ErrorResponse>(
-        { 
-          error: "Generation blocked",
-          details: block.reason || "You have been blocked from generating images"
-        },
-        { status: 403 }
-      )
-    }
 
     const formData = await request.formData()
     const mode = formData.get("mode") as string

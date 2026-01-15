@@ -12,6 +12,7 @@ import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
 import { AuthModal } from "@/components/auth-modal"
 import { PaymentModal } from "@/components/payment-modal"
+import { PricingModal } from "@/components/pricing-modal"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useSession } from "@/lib/auth-client"
 import { usePersistentHistory } from "./hooks/use-persistent-history"
@@ -129,6 +130,8 @@ export function ImageCombiner() {
   const [showHowItWorks, setShowHowItWorks] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPricingModal, setShowPricingModal] = useState(false)
+  const [isGeneralLogin, setIsGeneralLogin] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
@@ -169,6 +172,7 @@ export function ImageCombiner() {
   } = useGenerationLimit()
 
   const { data: session } = useSession()
+  const userId = session?.user?.id
 
   const {
     generations: persistedGenerations,
@@ -226,6 +230,7 @@ export function ImageCombiner() {
     if (hasImages && !canGenerateFromLimit && !isAuthenticated && !showAuthModal) {
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
+        setIsGeneralLogin(false) // Reset to show limit reached message
         setShowAuthModal(true)
       }, 100)
       return () => clearTimeout(timer)
@@ -253,6 +258,103 @@ export function ImageCombiner() {
     await refreshCredits()
     setShowPaymentModal(false)
   }
+
+  const [showAuthAfterPayment, setShowAuthAfterPayment] = useState(false)
+
+  // Check for payment success callback and prompt signup if unauthenticated
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const paymentStatus = searchParams.get("payment")
+    const needsSignup = searchParams.get("signup") === "true"
+    const reference = searchParams.get("reference")
+
+    if (paymentStatus === "success" && needsSignup && !isAuthenticated) {
+      // Show success toast
+      showToast("Payment successful! Sign up to link your credits to your account.", "success")
+      
+      // Set flag to show auth modal with payment message
+      setShowAuthAfterPayment(true)
+      
+      // Show auth modal after a short delay
+      const timer = setTimeout(() => {
+        setShowAuthModal(true)
+      }, 500)
+
+      // Clean up URL
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("payment")
+      newUrl.searchParams.delete("signup")
+      newUrl.searchParams.delete("reference")
+      window.history.replaceState({}, "", newUrl.toString())
+
+      return () => clearTimeout(timer)
+    } else if (paymentStatus === "success" && isAuthenticated) {
+      // Authenticated user - refresh credits
+      refreshCredits()
+      showToast("Payment successful! Your credits have been added.", "success")
+
+      // Clean up URL
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("payment")
+      newUrl.searchParams.delete("reference")
+      window.history.replaceState({}, "", newUrl.toString())
+    } else if (paymentStatus === "failed") {
+      showToast("Payment failed. Please try again.", "error")
+
+      // Clean up URL
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete("payment")
+      newUrl.searchParams.delete("reference")
+      window.history.replaceState({}, "", newUrl.toString())
+    }
+  }, [isAuthenticated, showToast, refreshCredits])
+
+  // Reset auth after payment flag when modal closes
+  useEffect(() => {
+    if (!showAuthModal) {
+      setShowAuthAfterPayment(false)
+    }
+  }, [showAuthModal])
+
+  // Link unlinked payments when user authenticates
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      const linkUnlinkedPayments = async () => {
+        try {
+          const response = await fetch("/api/payments/link-credits", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.creditsLinked > 0) {
+              // Refresh credits to show newly linked credits
+              await refreshCredits()
+              showToast(
+                `Successfully linked ${data.creditsLinked} generation${data.creditsLinked > 1 ? "s" : ""} from your previous purchase${data.paymentsLinked > 1 ? "s" : ""}!`,
+                "success"
+              )
+            }
+          }
+        } catch (error) {
+          console.error("Error linking credits:", error)
+          // Don't show error to user - this is a background operation
+        }
+      }
+
+      // Small delay to ensure session is fully established
+      const timer = setTimeout(() => {
+        linkUnlinkedPayments()
+      }, 1000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [isAuthenticated, userId, refreshCredits, showToast])
 
   useEffect(() => {
     if (selectedGeneration?.status === "complete" && selectedGeneration?.imageUrl) {
@@ -790,15 +892,32 @@ export function ImageCombiner() {
             </div>
 
             <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+              <button
+                onClick={() => setShowPricingModal(true)}
+                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+              >
+                Pricing 💰
+              </button>
               {session?.user ? (
                 <UserProfileMenu onToast={showToast} />
               ) : (
-                <button
-                  onClick={() => setShowHowItWorks(true)}
-                  className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0"
-                >
-                  How It Works
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setIsGeneralLogin(true)
+                      setShowAuthModal(true)
+                    }}
+                    className="text-xs sm:text-sm bg-white text-black hover:bg-gray-200 px-3 py-1.5 rounded-md font-medium transition-colors flex-shrink-0 cursor-pointer"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => setShowHowItWorks(true)}
+                    className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                  >
+                    How It Works
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1002,7 +1121,23 @@ export function ImageCombiner() {
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => {
+          setShowAuthModal(false)
+          setIsGeneralLogin(false)
+        }}
+        afterPayment={showAuthAfterPayment}
+        isGeneralLogin={isGeneralLogin && !showAuthAfterPayment}
+      />
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        onSuccess={() => {
+          setShowPricingModal(false)
+          refreshCredits()
+        }}
+      />
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}

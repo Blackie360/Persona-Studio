@@ -4,10 +4,11 @@ import type React from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash2, Briefcase, Linkedin, Sparkles, Zap } from "lucide-react"
+import { Trash2, Briefcase, Linkedin, Sparkles, Zap, Tv, Smile } from "lucide-react"
 import { ImageUploadBox } from "./image-upload-box"
 import { cn } from "@/lib/utils"
 import { AVATAR_STYLES, BACKGROUND_OPTIONS, COLOR_MOOD_OPTIONS } from "./constants"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const btnClassName = "w-full h-10 md:h-12 text-sm md:base font-semibold bg-white text-black hover:bg-gray-200"
 
@@ -63,6 +64,8 @@ const styleIcons: Record<string, React.ReactNode> = {
   linkedin: <Linkedin className="size-4" />,
   anime: <Sparkles className="size-4" />,
   cyberpunk: <Zap className="size-4" />,
+  simpsons: <Tv className="size-4" />,
+  "family-guy": <Smile className="size-4" />,
 }
 
 const styleGlowColors: Record<string, string> = {
@@ -70,6 +73,8 @@ const styleGlowColors: Record<string, string> = {
   linkedin: "shadow-[0_0_15px_rgba(14,165,233,0.5)]",
   anime: "shadow-[0_0_15px_rgba(236,72,153,0.5)]",
   cyberpunk: "shadow-[0_0_15px_rgba(168,85,247,0.5)]",
+  simpsons: "shadow-[0_0_15px_rgba(255,193,7,0.5)]",
+  "family-guy": "shadow-[0_0_15px_rgba(255,87,34,0.5)]",
 }
 
 export function InputSection({
@@ -236,11 +241,11 @@ export function InputSection({
                 className={cn(
                   "flex items-center gap-2 p-3 border transition-all text-left",
                   avatarStyle === style.value
-                    ? `border-white bg-white/10 text-white ${styleGlowColors[style.value]}`
+                    ? `border-white bg-white/10 text-white ${styleGlowColors[style.value] || ""}`
                     : "border-gray-600 bg-black/50 text-gray-400 hover:border-gray-400 hover:text-gray-200",
                 )}
               >
-                {styleIcons[style.value]}
+                {styleIcons[style.value] || null}
                 <div className="flex flex-col">
                   <span className="text-xs md:text-sm font-medium">{style.label}</span>
                 </div>
@@ -327,19 +332,26 @@ export function InputSection({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.25 }}
         >
-          {!isAuthenticated && (
-            <div className="text-xs text-gray-400 text-center">
-              <span>
-                {remaining} free {remaining === 1 ? "generation" : "generations"} remaining
-                {remaining === 0 && " (sign in for 3 more)"}
-              </span>
+          {usageLoading ? (
+            <div className="flex justify-center">
+              <Skeleton className="h-4 w-32 bg-gray-800/50" />
             </div>
-          )}
-          {isAuthenticated && (
-            <div className="text-xs text-green-400 text-center">
-              {remaining} {remaining === 1 ? "generation" : "generations"} remaining
-              {remaining === 0 && " (resets in 7 days)"}
-            </div>
+          ) : (
+            <>
+              {!isAuthenticated && (
+                <div className="text-xs text-gray-400 text-center">
+                  <span>
+                    {remaining} free {remaining === 1 ? "generation" : "generations"} remaining
+                    {remaining === 0 && " (sign in for 3 more)"}
+                  </span>
+                </div>
+              )}
+              {isAuthenticated && (
+                <div className="text-xs text-green-400 text-center">
+                  {remaining} {remaining === 1 ? "generation" : "generations"} remaining
+                </div>
+              )}
+            </>
           )}
           <motion.div whileHover={canGenerate ? { scale: 1.01, y: -1 } : {}} whileTap={canGenerate ? { scale: 0.98 } : {}} transition={{ duration: 0.15 }}>
             <Button

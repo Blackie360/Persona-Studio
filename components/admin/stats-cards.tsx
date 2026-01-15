@@ -30,64 +30,64 @@ export function StatsCards({ stats }: StatsCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-300 text-sm font-medium">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-gray-300 text-xs sm:text-sm font-medium">
             Total Generations
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
             {safeStats.totalGenerations.toLocaleString()}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
             All time generations
           </p>
         </CardContent>
       </Card>
 
       <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-300 text-sm font-medium">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-gray-300 text-xs sm:text-sm font-medium">
             Total Users
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
             {safeStats.totalUsers.toLocaleString()}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
             Registered users
           </p>
         </CardContent>
       </Card>
 
       <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-300 text-sm font-medium">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-gray-300 text-xs sm:text-sm font-medium">
             Blocked Users
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-red-400">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-red-400">
             {safeStats.blockedUsers.toLocaleString()}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
             Currently blocked
           </p>
         </CardContent>
       </Card>
 
       <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-300 text-sm font-medium">
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-gray-300 text-xs sm:text-sm font-medium">
             Recent Generations
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
             {safeStats.recentGenerations.toLocaleString()}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
             Last 7 days
           </p>
         </CardContent>
@@ -95,8 +95,8 @@ export function StatsCards({ stats }: StatsCardsProps) {
 
       {Object.keys(safeStats.generationsByStatus).length > 0 && (
         <Card className="bg-black/40 border-gray-700 backdrop-blur-sm md:col-span-2 lg:col-span-4">
-          <CardHeader>
-            <CardTitle className="text-gray-300 text-sm font-medium">
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-gray-300 text-xs sm:text-sm font-medium">
               Generations by Status
             </CardTitle>
           </CardHeader>

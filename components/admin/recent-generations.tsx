@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Generation {
   id: string
@@ -57,42 +58,81 @@ export function RecentGenerations() {
 
   return (
     <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="text-white">Recent Generations</CardTitle>
+      <CardHeader className="pb-3 sm:pb-6">
+        <CardTitle className="text-white text-sm sm:text-base">Recent Generations</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-gray-400">Loading generations...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-700">
-                  <TableHead className="text-gray-300">User</TableHead>
-                  <TableHead className="text-gray-300">Prompt</TableHead>
-                  <TableHead className="text-gray-300">Status</TableHead>
-                  <TableHead className="text-gray-300">Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {generations.map((gen) => (
-                  <TableRow key={gen.id} className="border-gray-700">
-                    <TableCell className="text-white">
-                      {gen.userName || gen.userEmail || "Anonymous"}
-                    </TableCell>
-                    <TableCell className="text-gray-300 max-w-md truncate">
-                      {gen.prompt}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(gen.status)}</TableCell>
-                    <TableCell className="text-gray-400">
-                      {new Date(gen.createdAt).toLocaleString()}
-                    </TableCell>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-700">
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">User</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm">Prompt</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Created</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <TableRow key={i} className="border-gray-700">
+                      <TableCell>
+                        <Skeleton className="h-4 w-24 bg-gray-800" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48 bg-gray-800" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-16 bg-gray-800" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32 bg-gray-800" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-700">
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">User</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm">Prompt</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-gray-300 text-xs sm:text-sm whitespace-nowrap">Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {generations.map((gen) => (
+                    <TableRow key={gen.id} className="border-gray-700">
+                      <TableCell className="text-white text-xs sm:text-sm">
+                        <div className="max-w-[100px] sm:max-w-none truncate">
+                          {gen.userName || gen.userEmail || "Anonymous"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-300 text-xs sm:text-sm max-w-[200px] sm:max-w-md truncate">
+                        {gen.prompt}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={gen.status === "complete" ? "default" : gen.status === "error" ? "destructive" : "secondary"} className="text-xs">
+                          {gen.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-gray-400 text-xs sm:text-sm whitespace-nowrap">
+                        {new Date(gen.createdAt).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             {generations.length === 0 && (
-              <div className="text-center text-gray-400 py-8">No generations found</div>
+              <div className="text-center text-gray-400 py-8 text-sm">No generations found</div>
             )}
           </div>
         )}
