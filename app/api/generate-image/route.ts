@@ -179,12 +179,63 @@ export async function POST(request: NextRequest) {
 
       const convertToBase64 = async (source: File | string): Promise<{ base64: string; mediaType: string }> => {
         if (typeof source === "string") {
-          const response = await fetch(source)
+          // Fetch image from URL with error handling
+          let response: Response
+          try {
+            response = await fetch(source, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (compatible; ImageFetcher/1.0)",
+              },
+            })
+          } catch (fetchError) {
+            throw new Error(`Failed to fetch image from URL: ${fetchError instanceof Error ? fetchError.message : "Unknown error"}`)
+          }
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: HTTP ${response.status} ${response.statusText}`)
+          }
+
+          const contentType = response.headers.get("content-type") || ""
+          
+          // Validate content type
+          if (!contentType.startsWith("image/")) {
+            throw new Error(`Invalid content type: ${contentType}. Expected an image.`)
+          }
+
+          // Validate allowed image types
+          const isValidType = ALLOWED_IMAGE_TYPES.some(type => contentType.includes(type.split("/")[1]))
+          if (!isValidType && !contentType.includes("image/jpeg") && !contentType.includes("image/png") && !contentType.includes("image/webp")) {
+            throw new Error(`Unsupported image format: ${contentType}. Allowed: JPEG, PNG, WebP, GIF`)
+          }
+
           const arrayBuffer = await response.arrayBuffer()
+          
+          // Check file size
+          if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
+            throw new Error(`Image too large: ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(2)}MB. Maximum ${MAX_FILE_SIZE / 1024 / 1024}MB allowed.`)
+          }
+
+          // Validate that we actually got image data
+          if (arrayBuffer.byteLength === 0) {
+            throw new Error("Received empty image data")
+          }
+
           const buffer = Buffer.from(arrayBuffer)
           const base64 = buffer.toString("base64")
-          const contentType = response.headers.get("content-type") || "image/jpeg"
-          return { base64, mediaType: contentType }
+          
+          // Normalize content type for Gemini API
+          let mediaType = contentType
+          if (contentType.includes("image/jpeg") || contentType.includes("image/jpg")) {
+            mediaType = "image/jpeg"
+          } else if (contentType.includes("image/png")) {
+            mediaType = "image/png"
+          } else if (contentType.includes("image/webp")) {
+            mediaType = "image/webp"
+          } else if (contentType.includes("image/gif")) {
+            mediaType = "image/gif"
+          }
+
+          return { base64, mediaType }
         } else {
           const arrayBuffer = await source.arrayBuffer()
           const buffer = Buffer.from(arrayBuffer)
