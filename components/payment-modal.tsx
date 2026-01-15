@@ -74,7 +74,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             <Button
               onClick={handlePay}
               disabled={isLoading}
-              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold"
+              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
             >
               {isLoading ? "Redirecting to checkout..." : "Pay via M-Pesa"}
             </Button>

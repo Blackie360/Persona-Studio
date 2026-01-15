@@ -64,10 +64,10 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
       : "0.0"
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-white mb-4">Payment Analytics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-3 sm:mb-4">Payment Analytics</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-gray-300 text-sm font-medium">
@@ -75,10 +75,10 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
                 {payingUsersCount.toLocaleString()}
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
                 Users with successful payments
               </p>
             </CardContent>
@@ -91,10 +91,10 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
                 {activeSubscriptions.toLocaleString()}
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
                 Currently active
               </p>
             </CardContent>
@@ -107,13 +107,13 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-400">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-400 break-words">
                 {revenue.currency} {revenue.total.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-400 mt-1">
                 Last {revenue.period.days} days
               </p>
             </CardContent>
@@ -126,10 +126,10 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
                 {successRate}%
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs sm:text-sm text-gray-400 mt-1 break-words">
                 {successfulTransactions} / {totalTransactions} transactions
               </p>
             </CardContent>
@@ -138,27 +138,27 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
       </div>
 
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="bg-black/40 border-gray-700">
-          <TabsTrigger value="status" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white">
+        <TabsList className="bg-black/40 border-gray-700 w-full overflow-x-auto flex-nowrap sm:flex-wrap">
+          <TabsTrigger value="status" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-xs sm:text-sm whitespace-nowrap">
             Payment Status
           </TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white">
+          <TabsTrigger value="history" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-xs sm:text-sm whitespace-nowrap">
             Payment History
           </TabsTrigger>
-          <TabsTrigger value="revenue" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white">
+          <TabsTrigger value="revenue" className="data-[state=active]:bg-gray-800 data-[state=active]:text-white text-xs sm:text-sm whitespace-nowrap">
             Revenue Trends
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="status" className="mt-4">
+        <TabsContent value="status" className="mt-3 sm:mt-4">
           <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-300 text-sm font-medium">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-gray-300 text-sm sm:text-base font-medium">
                 Payment Status Breakdown
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
                 <Badge
                   variant="default"
                   className="bg-green-600 hover:bg-green-700 text-white"
@@ -200,15 +200,16 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="history" className="mt-4">
+        <TabsContent value="history" className="mt-3 sm:mt-4">
           <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-300 text-sm font-medium">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-gray-300 text-sm sm:text-base font-medium">
                 Payment Attempt History
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <Table>
                 <TableHeader>
                   <TableRow className="border-gray-700 hover:bg-gray-800/50">
                     <TableHead className="text-gray-300">Category</TableHead>
@@ -282,21 +283,22 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
                   </TableRow>
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="revenue" className="mt-4">
+        <TabsContent value="revenue" className="mt-3 sm:mt-4">
           <Card className="bg-black/40 border-gray-700 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-gray-300 text-sm font-medium">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-gray-300 text-sm sm:text-base font-medium">
                 Revenue Over Time (Last {revenue.period.days} days)
               </CardTitle>
             </CardHeader>
             <CardContent>
               {revenueOverTime.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-sm text-gray-400 mb-4">
+                  <div className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">
                     Total: {revenue.currency}{" "}
                     {revenue.total.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
@@ -307,12 +309,12 @@ export function PaymentStats({ analytics }: PaymentStatsProps) {
                     {revenueOverTime.map((item) => (
                       <div
                         key={item.date}
-                        className="flex items-center justify-between p-2 rounded bg-gray-800/50 hover:bg-gray-800"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-0 p-2 sm:p-3 rounded bg-gray-800/50 hover:bg-gray-800"
                       >
-                        <span className="text-gray-300 text-sm">
+                        <span className="text-gray-300 text-xs sm:text-sm">
                           {new Date(item.date).toLocaleDateString()}
                         </span>
-                        <span className="text-green-400 font-medium">
+                        <span className="text-green-400 font-medium text-xs sm:text-sm">
                           {revenue.currency} {item.amount.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,

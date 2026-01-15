@@ -112,17 +112,17 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-black/95 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-black/95 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-center">
             Choose Your Plan 💰
           </DialogTitle>
-          <DialogDescription className="text-gray-400 text-center">
+          <DialogDescription className="text-gray-400 text-center text-sm sm:text-base">
             Select a plan and pay via M-Pesa to unlock generations
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-6 mt-6">
+        <div className="flex flex-col gap-4 sm:gap-6 mt-4 sm:mt-6">
           {error && (
             <div className="bg-red-900/20 border border-red-700 text-red-400 p-3 rounded text-sm">
               {error}
@@ -130,7 +130,7 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
           )}
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {PRICING_PLANS.map((plan) => (
               <Card
                 key={plan.amount}
@@ -139,21 +139,21 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
                 } ${plan.popular ? "ring-2 ring-yellow-500/50" : ""}`}
                 onClick={() => handlePlanSelect(plan)}
               >
-                <CardHeader>
+                <CardHeader className="pb-3 sm:pb-6">
                   {plan.popular && (
-                    <div className="text-xs font-semibold text-yellow-400 mb-2">POPULAR</div>
+                    <div className="text-xs sm:text-sm font-semibold text-yellow-400 mb-2">POPULAR</div>
                   )}
-                  <CardTitle className="text-xl font-bold text-white">
+                  <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                     KES {plan.amount}
                   </CardTitle>
-                  <div className="text-sm text-gray-400">{plan.label}</div>
+                  <div className="text-xs sm:text-sm text-gray-400">{plan.label}</div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="text-2xl font-bold text-green-400">
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-400">
                       {plan.generations} Generations
                     </div>
-                    <div className="text-xs text-gray-400">{plan.description}</div>
+                    <div className="text-xs sm:text-sm text-gray-400">{plan.description}</div>
                     {selectedPlan?.amount === plan.amount && showEmailInput && !isAuthenticated && (
                       <div className="mt-4 space-y-2">
                         <Input
@@ -171,7 +171,7 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
                         <Button
                           onClick={() => handlePay(plan)}
                           disabled={isLoading || !email}
-                          className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                          className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
                         >
                           {isLoading ? "Processing..." : "Pay via M-Pesa"}
                         </Button>
@@ -181,7 +181,7 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
                       <Button
                         onClick={() => handlePay(plan)}
                         disabled={isLoading}
-                        className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold mt-4"
+                        className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold mt-4 cursor-pointer"
                       >
                         {isLoading ? "Redirecting to checkout..." : "Pay via M-Pesa"}
                       </Button>
@@ -193,12 +193,12 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
           </div>
 
           {!isAuthenticated && !showEmailInput && (
-            <div className="text-xs text-gray-400 text-center">
+            <div className="text-xs sm:text-sm text-gray-400 text-center">
               You'll need to provide your email to complete the payment
             </div>
           )}
 
-          <div className="text-xs text-gray-500 text-center pt-4 border-t border-gray-700">
+          <div className="text-xs sm:text-sm text-gray-500 text-center pt-3 sm:pt-4 border-t border-gray-700">
             You'll be redirected to the secure Paystack checkout page to complete your M-Pesa payment
           </div>
         </div>
