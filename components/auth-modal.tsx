@@ -44,7 +44,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {isLoading ? "Signing in..." : "Sign in with Google"}
           </Button>
           <p className="text-xs text-gray-500 text-center">
-            Sign in to get 3 additional generations. Your limit resets every 7 days.
+            Sign in to get 3 additional generations.
           </p>
         </div>
       </DialogContent>

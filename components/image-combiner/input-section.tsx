@@ -338,7 +338,6 @@ export function InputSection({
           {isAuthenticated && (
             <div className="text-xs text-green-400 text-center">
               {remaining} {remaining === 1 ? "generation" : "generations"} remaining
-              {remaining === 0 && " (resets in 7 days)"}
             </div>
           )}
           <motion.div whileHover={canGenerate ? { scale: 1.01, y: -1 } : {}} whileTap={canGenerate ? { scale: 0.98 } : {}} transition={{ duration: 0.15 }}>
