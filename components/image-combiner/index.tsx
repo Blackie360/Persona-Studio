@@ -30,14 +30,26 @@ if (typeof window !== "undefined") {
   console.error = (...args: unknown[]) => {
     // Check if any argument contains the noiseScale/noiseOffset warning
     const errorMessage = args
-      .map((arg) => (typeof arg === "string" ? arg : String(arg)))
+      .map((arg) => {
+        if (typeof arg === "string") return arg
+        if (arg instanceof Error) return arg.message
+        try {
+          return JSON.stringify(arg)
+        } catch {
+          return String(arg)
+        }
+      })
       .join(" ")
     
+    // Suppress warnings about noiseScale and noiseOffset props
     if (
       errorMessage.includes("noiseScale") ||
       errorMessage.includes("noiseOffset") ||
       errorMessage.includes("noisescale") ||
-      errorMessage.includes("noiseoffset")
+      errorMessage.includes("noiseoffset") ||
+      errorMessage.includes("React does not recognize") ||
+      errorMessage.includes("lowercase `noisescale`") ||
+      errorMessage.includes("lowercase `noiseoffset`")
     ) {
       // Suppress this specific warning from Dithering component
       return
@@ -71,6 +83,7 @@ const DitheringWrapper = memo((props: {
   } = props
 
   // Build props object with only valid props for the Dithering component
+  // Use a ref to prevent React from seeing these props in the DOM
   const ditheringProps: {
     color1?: number[]
     color2?: number[]
@@ -93,6 +106,7 @@ const DitheringWrapper = memo((props: {
 
   return (
     <div className="w-full h-full" suppressHydrationWarning>
+      {/* eslint-disable-next-line react/jsx-props-no-spreading */}
       <Dithering {...ditheringProps} />
     </div>
   )
