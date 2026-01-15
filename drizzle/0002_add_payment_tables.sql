@@ -31,3 +31,4 @@ CREATE INDEX "payment_status_idx" ON "payment" USING btree ("status");--> statem
 CREATE INDEX "payment_createdAt_idx" ON "payment" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "user_credits_userId_idx" ON "user_credits" USING btree ("user_id");
 
+
