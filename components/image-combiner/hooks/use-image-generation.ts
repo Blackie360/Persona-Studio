@@ -73,6 +73,21 @@ function buildAvatarPrompt(
 - Cinematic high-contrast lighting
 - Sci-fi atmosphere
 - Ultra-detailed, sharp, futuristic look`,
+    simpsons: `Classic Simpsons cartoon animation style.
+- Distinctive yellow skin tone (Simpsons signature color)
+- Bold black outlines around all features
+- Simple, flat colors with minimal shading
+- Large expressive eyes with small pupils
+- Oversized head proportions typical of Simpsons characters
+- Clean, cel-shaded animation aesthetic
+- No photorealistic elements - pure cartoon style`,
+    "family-guy": `Family Guy cartoon animation style.
+- Bold, thick black outlines defining all features
+- Flat, solid colors with minimal gradient shading
+- Slightly exaggerated facial features
+- Clean, simplified cartoon aesthetic
+- Distinctive animation style with sharp edges
+- No photorealistic elements - pure cartoon illustration`,
   }
 
   const backgroundDescriptions: Record<string, string> = {
@@ -95,12 +110,37 @@ function buildAvatarPrompt(
     "high-contrast": "High contrast with bold colors",
   }
 
-  const prompt = `Transform this photo into a professional profile picture avatar.
+  const isCartoonStyle = style === "simpsons" || style === "family-guy"
+  
+  const basePrompt = isCartoonStyle
+    ? `Transform this photo into a cartoon avatar in the specified style.
 
 CRITICAL REQUIREMENTS:
 - Preserve the person's facial identity, structure, proportions, and expression exactly
 - Do NOT change gender, age, ethnicity, or facial features
-- The person must remain clearly recognizable
+- The person must remain clearly recognizable as the original person
+- Convert to pure cartoon illustration style - NO photorealistic elements`
+
+    : `Transform this photo into a professional profile picture avatar.
+
+CRITICAL REQUIREMENTS:
+- Preserve the person's facial identity, structure, proportions, and expression exactly
+- Do NOT change gender, age, ethnicity, or facial features
+- The person must remain clearly recognizable`
+
+  const imageQualitySection = isCartoonStyle
+    ? `IMAGE QUALITY:
+- Bold, clean outlines defining all features
+- Flat colors with minimal shading
+- High resolution, crisp cartoon illustration
+- Clean composition with sharp edges`
+    : `IMAGE QUALITY:
+- Improve lighting, sharpness, and clarity
+- Enhance skin tone naturally without over-smoothing
+- Maintain realistic textures
+- High resolution, clean composition`
+
+  const prompt = `${basePrompt}
 
 STYLE: ${styleDescriptions[style] || styleDescriptions.linkedin}
 
@@ -108,11 +148,7 @@ BACKGROUND: ${backgroundDescriptions[background] || backgroundDescriptions["stud
 
 COLOR MOOD: ${colorMoodDescriptions[colorMood] || colorMoodDescriptions.natural}
 
-IMAGE QUALITY:
-- Improve lighting, sharpness, and clarity
-- Enhance skin tone naturally without over-smoothing
-- Maintain realistic textures
-- High resolution, clean composition
+${imageQualitySection}
 
 COMPOSITION:
 - Crop to head and shoulders
@@ -121,7 +157,7 @@ COMPOSITION:
 
 ${additionalInstructions ? `ADDITIONAL INSTRUCTIONS: ${additionalInstructions}` : ""}
 
-OUTPUT: Single final edited image, professional and visually appealing.`
+OUTPUT: Single final edited image${isCartoonStyle ? ", pure cartoon illustration style" : ", professional and visually appealing"}.`
 
   return prompt
 }
@@ -157,6 +193,10 @@ export function useImageGeneration({
     if (rawBody) {
       try {
         const errorData = JSON.parse(rawBody)
+        // Prioritize message field, then details, then error
+        if (errorData?.message) {
+          return errorData.message
+        }
         if (errorData?.error || errorData?.details) {
           return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
         }
@@ -167,6 +207,10 @@ export function useImageGeneration({
 
     try {
       const errorData = await response.json()
+      // Prioritize message field, then details, then error
+      if (errorData?.message) {
+        return errorData.message
+      }
       if (errorData?.error || errorData?.details) {
         return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
       }
@@ -260,6 +304,9 @@ export function useImageGeneration({
       formData.append("mode", "image-editing")
       formData.append("prompt", fullPrompt)
       formData.append("aspectRatio", "square")
+      formData.append("avatarStyle", avatarStyle)
+      formData.append("background", background)
+      formData.append("colorMood", colorMood)
 
       if (useUrls) {
         formData.append("image1Url", image1Url)
