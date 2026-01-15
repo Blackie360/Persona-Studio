@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { StatsCards } from "./stats-cards"
 import { UsersTable } from "./users-table"
 import { RecentGenerations } from "./recent-generations"
+import { PaymentStats } from "./payment-stats"
+import { PayingCustomers } from "./paying-customers"
 import { Button } from "@/components/ui/button"
 
 interface DashboardStats {
@@ -16,13 +18,54 @@ interface DashboardStats {
   generationsOverTime: Array<{ date: string; count: number }>
 }
 
+interface PaymentAnalytics {
+  payingUsersCount: number
+  activeSubscriptions: number
+  paymentStatusBreakdown: {
+    success: number
+    failed: number
+    pending: number
+    abandoned: number
+  }
+  paymentAttemptHistory: {
+    firstTimePayers: number
+    repeatPayers: number
+    thirdTimePayers: number
+    totalCustomers: number
+  }
+  revenue: {
+    total: number
+    currency: string
+    period: {
+      days: number
+      from: string
+      to: string
+    }
+  }
+  revenueOverTime: Array<{ date: string; amount: number }>
+  totalTransactions: number
+  successfulTransactions: number
+  payingCustomers: Array<{
+    customerId: number
+    email: string | null
+    phone: string | null
+    totalSpent: number
+    transactionCount: number
+    firstPaymentDate: string | null
+    lastPaymentDate: string | null
+  }>
+}
+
 export function AdminDashboard() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [paymentAnalytics, setPaymentAnalytics] = useState<PaymentAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [paymentLoading, setPaymentLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
+    fetchPaymentAnalytics()
   }, [])
 
   const fetchStats = async () => {
@@ -53,6 +96,88 @@ export function AdminDashboard() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPaymentAnalytics = async () => {
+    try {
+      const response = await fetch("/api/admin/payments")
+      if (response.status === 401) {
+        router.push("/admin/login")
+        return
+      }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.message || errorData.error || `Failed to fetch payment analytics: ${response.status}`
+        console.error("Error fetching payment analytics:", errorMessage, errorData)
+        // Set default payment analytics on error
+        setPaymentAnalytics({
+          payingUsersCount: 0,
+          activeSubscriptions: 0,
+          paymentStatusBreakdown: {
+            success: 0,
+            failed: 0,
+            pending: 0,
+            abandoned: 0,
+          },
+          paymentAttemptHistory: {
+            firstTimePayers: 0,
+            repeatPayers: 0,
+            thirdTimePayers: 0,
+            totalCustomers: 0,
+          },
+          revenue: {
+            total: 0,
+            currency: "KES",
+            period: {
+              days: 30,
+              from: new Date().toISOString(),
+              to: new Date().toISOString(),
+            },
+          },
+          revenueOverTime: [],
+          totalTransactions: 0,
+          successfulTransactions: 0,
+          payingCustomers: [],
+        })
+        return
+      }
+      const data = await response.json()
+      setPaymentAnalytics(data)
+    } catch (error) {
+      console.error("Error fetching payment analytics:", error)
+      // Set default payment analytics on error
+      setPaymentAnalytics({
+        payingUsersCount: 0,
+        activeSubscriptions: 0,
+        paymentStatusBreakdown: {
+          success: 0,
+          failed: 0,
+          pending: 0,
+          abandoned: 0,
+        },
+        paymentAttemptHistory: {
+          firstTimePayers: 0,
+          repeatPayers: 0,
+          thirdTimePayers: 0,
+          totalCustomers: 0,
+        },
+        revenue: {
+          total: 0,
+          currency: "KES",
+          period: {
+            days: 30,
+            from: new Date().toISOString(),
+            to: new Date().toISOString(),
+          },
+        },
+          revenueOverTime: [],
+          totalTransactions: 0,
+          successfulTransactions: 0,
+          payingCustomers: [],
+      })
+    } finally {
+      setPaymentLoading(false)
     }
   }
 
@@ -90,6 +215,21 @@ export function AdminDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <StatsCards stats={stats} />
+        
+        {!paymentLoading && paymentAnalytics && (
+          <div className="mt-8">
+            <PaymentStats analytics={paymentAnalytics} />
+          </div>
+        )}
+
+        {!paymentLoading && paymentAnalytics && paymentAnalytics.payingCustomers.length > 0 && (
+          <div className="mt-8">
+            <PayingCustomers
+              customers={paymentAnalytics.payingCustomers}
+              currency={paymentAnalytics.revenue.currency}
+            />
+          </div>
+        )}
         
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="lg:col-span-2">
