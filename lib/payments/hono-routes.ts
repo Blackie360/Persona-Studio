@@ -188,8 +188,23 @@ paymentRoutes.get("/callback", async (c) => {
       const verification = await verifyPayment(reference)
       
       if (verification.status && verification.data.status === "success") {
-        // Payment successful - redirect to home with success message
-        return c.redirect("/?payment=success&reference=" + reference)
+        // Check if payment was made by an unauthenticated user
+        const payments = await db
+          .select()
+          .from(payment)
+          .where(eq(payment.paystackReference, reference))
+          .limit(1)
+
+        const paymentRecord = payments.length > 0 ? payments[0] : null
+        const isUnauthenticated = paymentRecord && !paymentRecord.userId
+
+        if (isUnauthenticated) {
+          // Redirect to home with signup prompt
+          return c.redirect("/?payment=success&signup=true&reference=" + reference)
+        } else {
+          // Payment successful - redirect to home with success message
+          return c.redirect("/?payment=success&reference=" + reference)
+        }
       } else {
         // Payment failed or pending
         return c.redirect("/?payment=failed&reference=" + reference)
