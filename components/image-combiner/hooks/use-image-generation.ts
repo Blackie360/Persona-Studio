@@ -24,6 +24,7 @@ interface UseImageGenerationProps {
   canGenerate: boolean
   onShowAuthModal: () => void
   decrementOptimistic: () => void
+  updateRemainingFromServer?: (remaining: number) => void
 }
 
 const playSuccessSound = () => {
@@ -181,6 +182,7 @@ export function useImageGeneration({
   canGenerate,
   onShowAuthModal,
   decrementOptimistic,
+  updateRemainingFromServer,
 }: UseImageGenerationProps) {
   const [selectedGenerationId, setSelectedGenerationId] = useState<string | null>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -322,7 +324,7 @@ export function useImageGeneration({
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "")
-        let errorData: { error?: string; details?: string } | null = null
+        let errorData: { error?: string; details?: string; remaining?: number } | null = null
         if (errorBody) {
           try {
             errorData = JSON.parse(errorBody)
@@ -331,10 +333,25 @@ export function useImageGeneration({
           }
         }
 
+        // Update remaining count from error response (especially for 429 rate limit)
+        if (errorData?.remaining !== undefined && updateRemainingFromServer) {
+          updateRemainingFromServer(errorData.remaining)
+        }
+
         if (errorData?.error === "Configuration error" && errorData.details?.includes("AI_GATEWAY_API_KEY")) {
           clearInterval(progressInterval)
           setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
           onToast("AI_GATEWAY_API_KEY is not configured. Add the key to continue.", "error")
+          return
+        }
+
+        // Handle rate limit error specifically
+        if (response.status === 429) {
+          clearInterval(progressInterval)
+          setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
+          const rateLimitMessage = errorData?.message || errorData?.error || "Rate limit exceeded. Please sign up to continue generating images."
+          onToast(rateLimitMessage, "error")
+          onShowAuthModal()
           return
         }
 
@@ -345,6 +362,11 @@ export function useImageGeneration({
       const data = await response.json()
 
       clearInterval(progressInterval)
+
+      // Update remaining count from successful response
+      if (data.remaining !== undefined && updateRemainingFromServer) {
+        updateRemainingFromServer(data.remaining)
+      }
 
       if (data.url) {
         const completedGeneration: Generation = {

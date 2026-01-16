@@ -29,6 +29,7 @@ export function useGenerationLimit() {
   const [usageLoading, setUsageLoading] = useState(false)
   const [paidGenerations, setPaidGenerations] = useState<number>(0)
   const [paidGenerationsUsed, setPaidGenerationsUsed] = useState<number>(0)
+  const [serverRemaining, setServerRemaining] = useState<number | null>(null)
 
   // Load and validate unauthenticated generation count from localStorage
   const loadGenerationCount = useCallback((): GenerationData => {
@@ -123,6 +124,27 @@ export function useGenerationLimit() {
     }
   }, [isAuthenticated, userId])
 
+  // Fetch remaining generations from server for unauthenticated users
+  const fetchServerRemaining = useCallback(async () => {
+    if (isAuthenticated) {
+      return // Authenticated users use different logic
+    }
+
+    try {
+      const response = await fetch("/api/generation-usage")
+      if (response.ok) {
+        const data = await response.json()
+        setServerRemaining(data.remaining ?? FREE_LIMIT)
+        setRemaining(data.remaining ?? FREE_LIMIT)
+      }
+    } catch (error) {
+      console.error("Error fetching server remaining:", error)
+      // Fallback to localStorage on error
+      const data = loadGenerationCount()
+      setRemaining(Math.max(0, FREE_LIMIT - data.count))
+    }
+  }, [isAuthenticated, loadGenerationCount])
+
   // Load paid generations used from localStorage
   const loadPaidGenerationsUsed = useCallback((): number => {
     if (typeof window === "undefined" || !userId) {
@@ -166,12 +188,12 @@ export function useGenerationLimit() {
       // Will be updated when paidGenerations is fetched
       setRemaining(Math.max(0, AUTH_LIMIT - freeUsed))
     } else {
-      const data = loadGenerationCount()
-      setRemaining(Math.max(0, FREE_LIMIT - data.count))
+      // For unauthenticated users, fetch from server (IP-based limit)
+      fetchServerRemaining()
       setPaidGenerations(0)
       setPaidGenerationsUsed(0)
     }
-  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, loadPaidGenerationsUsed, fetchPaidCredits])
+  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, loadPaidGenerationsUsed, fetchPaidCredits, fetchServerRemaining])
 
   // Update remaining when paid credits are fetched
   useEffect(() => {
@@ -213,17 +235,20 @@ export function useGenerationLimit() {
         setRemaining(Math.max(0, availablePaid))
       }
     } else {
-      const data = loadGenerationCount()
-      const newCount = data.count + 1
-      const newData: GenerationData = {
-        count: newCount,
-      }
-      saveGenerationCount(newData)
-      setRemaining(Math.max(0, FREE_LIMIT - newCount))
+      // For unauthenticated users, optimistically decrement
+      // The server will update the actual count, and we'll sync from API response
+      const currentRemaining = serverRemaining !== null ? serverRemaining : remaining
+      setRemaining(Math.max(0, currentRemaining - 1))
     }
     
     setUsageLoading(false)
-  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadGenerationCount, loadAuthGenerationCount, saveGenerationCount, saveAuthGenerationCount, savePaidGenerationsUsed])
+  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadAuthGenerationCount, saveAuthGenerationCount, savePaidGenerationsUsed, serverRemaining, remaining])
+
+  // Update remaining from server response
+  const updateRemainingFromServer = useCallback((serverRemainingCount: number) => {
+    setServerRemaining(serverRemainingCount)
+    setRemaining(serverRemainingCount)
+  }, [])
 
   // Check if user can generate
   const canGenerate = remaining > 0
@@ -241,6 +266,8 @@ export function useGenerationLimit() {
     usageLoading,
     paidGenerations,
     refreshCredits,
+    updateRemainingFromServer,
+    fetchServerRemaining,
   }
 }
 

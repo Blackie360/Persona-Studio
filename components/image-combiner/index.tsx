@@ -169,6 +169,7 @@ export function ImageCombiner() {
     decrementOptimistic,
     usageLoading,
     refreshCredits,
+    updateRemainingFromServer,
   } = useGenerationLimit()
 
   const { data: session } = useSession()
@@ -213,6 +214,7 @@ export function ImageCombiner() {
     canGenerate: canGenerateFromLimit,
     onShowAuthModal: () => setShowAuthModal(true),
     decrementOptimistic,
+    updateRemainingFromServer,
   })
 
   const selectedGeneration = persistedGenerations.find((g) => g.id === selectedGenerationId) || persistedGenerations[0]
