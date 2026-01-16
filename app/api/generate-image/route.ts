@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
 import { logGenerationStart, logGenerationComplete } from "@/lib/generation-logger"
 import { auth } from "@/lib/auth"
+import { getClientIp } from "@/lib/ip"
+import { hasReachedLimit, incrementIpGenerationCount, getRemainingGenerations } from "@/lib/redis"
 
 export const dynamic = "force-dynamic"
 
@@ -13,12 +15,14 @@ interface GenerateImageResponse {
   url: string
   prompt: string
   description?: string
+  remaining?: number
 }
 
 interface ErrorResponse {
   error: string
   message?: string
   details?: string
+  remaining?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -29,10 +33,25 @@ export async function POST(request: NextRequest) {
     const userId = session?.user?.id || null
     const sessionId = session?.session?.id || null
     const userEmail = session?.user?.email || null
-    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
-                     request.headers.get("x-real-ip") || 
-                     "unknown"
+    const ipAddress = getClientIp(request)
     const userAgent = request.headers.get("user-agent") || "unknown"
+    const isAuthenticated = !!userId
+
+    // Check IP-based rate limit for unauthenticated users
+    if (!isAuthenticated) {
+      const reachedLimit = await hasReachedLimit(ipAddress)
+      if (reachedLimit) {
+        const remaining = await getRemainingGenerations(ipAddress)
+        return NextResponse.json<ErrorResponse>(
+          {
+            error: "Rate limit exceeded",
+            message: "You have reached the maximum number of free generations. Please sign up to continue generating images.",
+            remaining: remaining,
+          },
+          { status: 429 },
+        )
+      }
+    }
 
     const formData = await request.formData()
     const mode = formData.get("mode") as string
@@ -96,10 +115,18 @@ export async function POST(request: NextRequest) {
         await logGenerationComplete(logId, imageUrl, "complete")
       }
 
+      // Increment IP generation count for unauthenticated users
+      let remaining: number | undefined
+      if (!isAuthenticated) {
+        await incrementIpGenerationCount(ipAddress)
+        remaining = await getRemainingGenerations(ipAddress)
+      }
+
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
         prompt: prompt,
         description: result.text || "",
+        remaining,
       })
     } else if (mode === "image-editing") {
       const image1 = formData.get("image1") as File
@@ -267,10 +294,18 @@ export async function POST(request: NextRequest) {
         await logGenerationComplete(logId, imageUrl, "complete")
       }
 
+      // Increment IP generation count for unauthenticated users
+      let remaining: number | undefined
+      if (!isAuthenticated) {
+        await incrementIpGenerationCount(ipAddress)
+        remaining = await getRemainingGenerations(ipAddress)
+      }
+
       return NextResponse.json<GenerateImageResponse>({
         url: imageUrl,
         prompt: editingPrompt,
         description: result.text || "",
+        remaining,
       })
     } else {
       return NextResponse.json<ErrorResponse>(
@@ -287,10 +322,20 @@ export async function POST(request: NextRequest) {
       await logGenerationComplete(logId, null, "error")
     }
 
+    // Get remaining count for error response if unauthenticated
+    let remaining: number | undefined
+    const session = await auth.api.getSession({ headers: request.headers })
+    const isAuthenticated = !!session?.user?.id
+    if (!isAuthenticated) {
+      const ipAddress = getClientIp(request)
+      remaining = await getRemainingGenerations(ipAddress)
+    }
+
     return NextResponse.json<ErrorResponse>(
       {
         error: "Failed to generate image",
         details: errorMessage,
+        remaining,
       },
       { status: 500 },
     )

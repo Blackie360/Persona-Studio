@@ -37,6 +37,7 @@
     "@radix-ui/react-tooltip": "latest",
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-table": "^8.21.3",
+    "@upstash/redis": "^1.36.1",
     "@vercel/analytics": "latest",
     "ai": "latest",
     "autoprefixer": "^10.4.20",
