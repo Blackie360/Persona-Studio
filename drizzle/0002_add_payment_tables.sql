@@ -32,3 +32,6 @@ CREATE INDEX "payment_createdAt_idx" ON "payment" USING btree ("created_at");-->
 CREATE INDEX "user_credits_userId_idx" ON "user_credits" USING btree ("user_id");
 
 
+
+
+
