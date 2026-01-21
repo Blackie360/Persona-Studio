@@ -35,3 +35,4 @@ CREATE INDEX "user_credits_userId_idx" ON "user_credits" USING btree ("user_id")
 
 
 
+
