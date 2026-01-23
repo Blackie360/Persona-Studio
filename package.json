@@ -17,7 +17,6 @@
     "@emotion/is-prop-valid": "latest",
     "@hono/node-server": "^1.19.8",
     "@hono/zod-validator": "^0.7.6",
-    "@neondatabase/serverless": "^1.0.2",
     "@paper-design/shaders-react": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
     "@radix-ui/react-avatar": "latest",
@@ -56,6 +55,7 @@
     "nanoid": "^5.1.6",
     "next": "16.0.10",
     "next-themes": "latest",
+    "pg": "^8.17.2",
     "react": "^19",
     "react-dom": "^19",
     "recharts": "2.15.4",
@@ -68,6 +68,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
+    "@types/pg": "^8.16.0",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8.5",
