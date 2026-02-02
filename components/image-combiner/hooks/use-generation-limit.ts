@@ -134,8 +134,18 @@ export function useGenerationLimit() {
       const response = await fetch("/api/generation-usage")
       if (response.ok) {
         const data = await response.json()
-        setServerRemaining(data.remaining ?? FREE_LIMIT)
-        setRemaining(data.remaining ?? FREE_LIMIT)
+        // Ignore 999 value (placeholder for authenticated users)
+        // This prevents showing 999 briefly when session hasn't loaded yet
+        if (data.remaining === 999) {
+          // Fallback to localStorage if we get the placeholder value
+          const localData = loadGenerationCount()
+          const calculatedRemaining = Math.max(0, FREE_LIMIT - localData.count)
+          setServerRemaining(calculatedRemaining)
+          setRemaining(calculatedRemaining)
+        } else {
+          setServerRemaining(data.remaining ?? FREE_LIMIT)
+          setRemaining(data.remaining ?? FREE_LIMIT)
+        }
       }
     } catch (error) {
       console.error("Error fetching server remaining:", error)

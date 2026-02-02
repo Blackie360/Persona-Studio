@@ -228,7 +228,7 @@ export function AdminDashboard() {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="text-white border-gray-700 hover:bg-gray-800 text-sm sm:text-base w-full sm:w-auto"
+            className="cursor-pointer text-white border-gray-700 hover:bg-gray-800 text-sm sm:text-base w-full sm:w-auto"
           >
             Logout
           </Button>
