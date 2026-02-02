@@ -17,6 +17,22 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
 
+    // Build filter conditions
+    const conditions = []
+    if (userId) {
+      conditions.push(eq(generationLog.userId, userId))
+    }
+    if (status) {
+      conditions.push(eq(generationLog.status, status))
+    }
+    if (startDate) {
+      conditions.push(gte(generationLog.createdAt, new Date(startDate)))
+    }
+    if (endDate) {
+      conditions.push(lte(generationLog.createdAt, new Date(endDate)))
+    }
+
+    // Build query with filters applied before orderBy/limit/offset
     let query = db
       .select({
         id: generationLog.id,
@@ -37,30 +53,15 @@ export async function GET(request: NextRequest) {
       })
       .from(generationLog)
       .leftJoin(user, eq(generationLog.userId, user.id))
-      .orderBy(desc(generationLog.createdAt))
-      .limit(limit)
-      .offset(offset)
-
-    // Apply filters
-    const conditions = []
-    if (userId) {
-      conditions.push(eq(generationLog.userId, userId))
-    }
-    if (status) {
-      conditions.push(eq(generationLog.status, status))
-    }
-    if (startDate) {
-      conditions.push(gte(generationLog.createdAt, new Date(startDate)))
-    }
-    if (endDate) {
-      conditions.push(lte(generationLog.createdAt, new Date(endDate)))
-    }
 
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any
+      query = query.where(and(...conditions))
     }
 
     const generations = await query
+      .orderBy(desc(generationLog.createdAt))
+      .limit(limit)
+      .offset(offset)
 
     // Get total count (with same filters)
     let countQuery = db
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       .from(generationLog)
 
     if (conditions.length > 0) {
-      countQuery = countQuery.where(and(...conditions)) as any
+      countQuery = countQuery.where(and(...conditions))
     }
 
     const totalResult = await countQuery
@@ -103,8 +104,9 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === "Unauthorized") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const errorMessage = error instanceof Error ? error.message : "Internal server error"
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: errorMessage },
       { status: 500 }
     )
   }

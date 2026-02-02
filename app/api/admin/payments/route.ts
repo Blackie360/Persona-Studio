@@ -329,13 +329,19 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Convert to array and sort by total spent (descending)
+    // Convert to array and sort by latest payment date (descending)
     const payingCustomers = Array.from(payingCustomersMap.values())
       .map((customer) => ({
         ...customer,
         totalSpent: customer.totalSpent / 100, // Convert to main currency
       }))
-      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .sort((a, b) => {
+        // Sort by lastPaymentDate descending (most recent first)
+        if (!a.lastPaymentDate && !b.lastPaymentDate) return 0
+        if (!a.lastPaymentDate) return 1
+        if (!b.lastPaymentDate) return -1
+        return new Date(b.lastPaymentDate).getTime() - new Date(a.lastPaymentDate).getTime()
+      })
 
     return NextResponse.json({
       payingUsersCount,

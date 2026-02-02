@@ -32,12 +32,14 @@ export function RecentGenerations() {
       setLoading(true)
       const response = await fetch("/api/admin/generations?limit=10")
       if (!response.ok) {
-        throw new Error("Failed to fetch generations")
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+        throw new Error(errorData.error || `Failed to fetch generations: ${response.status} ${response.statusText}`)
       }
       const data = await response.json()
-      setGenerations(data.generations)
+      setGenerations(data.generations || [])
     } catch (error) {
       console.error("Error fetching generations:", error)
+      setGenerations([])
     } finally {
       setLoading(false)
     }
