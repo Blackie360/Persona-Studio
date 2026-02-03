@@ -10,6 +10,11 @@ An AI-powered avatar generation application that transforms your photos into stu
   - Avatar styles (Corporate, LinkedIn, Anime, Cyberpunk)
   - Background options (Studio, Gradient, Blur, Solid)
   - Color moods (Natural, Warm, Cool, Vibrant, Muted, High-Contrast)
+- **Partial Regeneration (Credit Saver)**: 
+  - Change only background and lighting for **0.5 credits** instead of 1 full credit
+  - Preserves all facial features and avatar style
+  - Available to authenticated users with paid credits
+  - Keyboard shortcut: `Ctrl+P` (Windows) or `Cmd+P` (Mac)
 - **Free Generations**: 
   - 2 free generations for unauthenticated users
   - 3 additional free generations for authenticated users (resets every 7 days)
@@ -99,10 +104,17 @@ An AI-powered avatar generation application that transforms your photos into stu
 - **3 free generations** (resets every 7 days)
 - Plus any purchased generations from payment plans
 - Free generations are used first, then paid generations
+- **Partial Regeneration**: Use 0.5 credits to change only background/lighting (paid credits only)
 
 ### Payment Plans
-- **Starter Plan**: KES 5 → 5 generations
-- **Value Pack**: KES 100 → 20 generations
+- **Starter Plan**: KES 5 → 5 generations (or 10 partial regenerations)
+- **Value Pack**: KES 100 → 20 generations (or 40 partial regenerations)
+
+### Credit System
+- **Full Generation**: 1.0 credit - Complete avatar transformation
+- **Partial Regeneration**: 0.5 credits - Background & lighting changes only
+- Credits are tracked in fractional units for precise usage
+- Partial regeneration preserves face, style, and all avatar characteristics
 
 ## 💳 Payment Flow
 

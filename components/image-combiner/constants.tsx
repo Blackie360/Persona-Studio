@@ -1,5 +1,15 @@
 import type { AspectRatioOption } from "./types"
 
+/**
+ * Avatar generation constants
+ *
+ * PARTIAL REGENERATION FEATURE:
+ * - Users can regenerate with only background/lighting changes for 0.5 credits
+ * - Face, style, and subject remain unchanged
+ * - Available to authenticated users with paid credits
+ * - Uses the same background and color mood options below
+ */
+
 export const AVATAR_STYLES = [
   {
     value: "corporate",

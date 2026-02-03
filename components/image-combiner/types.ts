@@ -6,6 +6,9 @@ export interface GeneratedImage {
   description?: string
 }
 
+/**
+ * Represents a single image generation request and its state
+ */
 export interface Generation {
   id: string
   status: "loading" | "complete" | "error"
@@ -20,6 +23,8 @@ export interface Generation {
   aspectRatio?: string
   mode?: string
   avatarStyle?: string
+  /** Type of regeneration: "full" (1 credit) or "partial" (0.5 credits, background/lighting only) */
+  regenerationType?: "full" | "partial"
 }
 
 export type AspectRatioOption = {

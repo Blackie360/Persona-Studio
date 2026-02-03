@@ -12,6 +12,7 @@ export interface GenerationLogData {
   avatarStyle?: string
   background?: string
   colorMood?: string
+  regenerationType?: string
   ipAddress?: string
   userAgent?: string
 }
@@ -31,6 +32,7 @@ export async function logGeneration(data: GenerationLogData): Promise<void> {
       avatarStyle: data.avatarStyle || null,
       background: data.background || null,
       colorMood: data.colorMood || null,
+      regenerationType: data.regenerationType || null,
       createdAt: now,
       completedAt: data.status === "complete" || data.status === "error" ? now : null,
       ipAddress: data.ipAddress || null,
@@ -55,6 +57,7 @@ export async function logGenerationStart(data: Omit<GenerationLogData, "status" 
       avatarStyle: data.avatarStyle || null,
       background: data.background || null,
       colorMood: data.colorMood || null,
+      regenerationType: data.regenerationType || null,
       createdAt: new Date(),
       completedAt: null,
       ipAddress: data.ipAddress || null,

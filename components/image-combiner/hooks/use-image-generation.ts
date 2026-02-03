@@ -24,7 +24,10 @@ interface UseImageGenerationProps {
   canGenerate: boolean
   onShowAuthModal: () => void
   decrementOptimistic: () => void
+  decrementOptimisticPartial?: () => void
   updateRemainingFromServer?: (remaining: number) => void
+  isAuthenticated: boolean
+  canUsePartialRegeneration: boolean
 }
 
 const playSuccessSound = () => {
@@ -163,6 +166,71 @@ OUTPUT: Single final edited image${isCartoonStyle ? ", pure cartoon illustration
   return prompt
 }
 
+/**
+ * Builds a prompt for partial regeneration that only modifies background and lighting/mood
+ * while preserving all facial features and characteristics.
+ * Used when user wants to save credits by only changing non-face elements.
+ *
+ * @param background - The background style to apply
+ * @param colorMood - The color mood/lighting to apply
+ * @param additionalInstructions - Optional additional user instructions
+ * @returns Complete prompt string for partial regeneration
+ */
+function buildPartialRegenerationPrompt(
+  background: string,
+  colorMood: string,
+  additionalInstructions: string,
+): string {
+  const backgroundDescriptions: Record<string, string> = {
+    "studio-neutral": "Neutral studio background with professional lighting",
+    "studio-light": "Light gray or white studio background",
+    "gradient-soft": "Soft gradient background transitioning smoothly",
+    "blur-office": "Blurred modern office environment in background",
+    "blur-nature": "Blurred natural outdoor setting in background",
+    "solid-white": "Clean solid white background",
+    "solid-gray": "Solid gray background",
+    transparent: "Clean background suitable for transparency",
+  }
+
+  const colorMoodDescriptions: Record<string, string> = {
+    natural: "Natural, true-to-life color tones",
+    warm: "Warm color palette with golden undertones",
+    cool: "Cool color palette with blue undertones",
+    vibrant: "Vibrant, saturated colors",
+    muted: "Muted, subtle color palette",
+    "high-contrast": "High contrast with bold colors",
+  }
+
+  const prompt = `Transform this photo by ONLY changing the background and adjusting lighting/mood.
+
+CRITICAL REQUIREMENTS - FACE PRESERVATION:
+- Keep the person's face, facial features, expression, and identity COMPLETELY UNCHANGED
+- Do NOT modify hair, skin tone, age, gender, ethnicity, or any facial characteristics
+- The person must remain EXACTLY recognizable as the original
+- ONLY modify background and lighting/mood
+
+BACKGROUND CHANGE: ${backgroundDescriptions[background] || backgroundDescriptions["studio-neutral"]}
+
+LIGHTING/MOOD ADJUSTMENT: ${colorMoodDescriptions[colorMood] || colorMoodDescriptions.natural}
+
+IMAGE QUALITY:
+- Maintain natural skin texture and facial details
+- Adjust overall lighting to match the selected mood
+- Ensure smooth integration between subject and new background
+- High resolution, clean composition
+
+COMPOSITION:
+- Keep the same framing and subject positioning
+- Maintain head and shoulders crop
+- Clean, professional result
+
+${additionalInstructions ? `ADDITIONAL INSTRUCTIONS: ${additionalInstructions}` : ""}
+
+OUTPUT: Single final edited image with new background and adjusted lighting, preserving all facial features.`
+
+  return prompt
+}
+
 export function useImageGeneration({
   prompt,
   aspectRatio,
@@ -182,7 +250,10 @@ export function useImageGeneration({
   canGenerate,
   onShowAuthModal,
   decrementOptimistic,
+  decrementOptimisticPartial,
   updateRemainingFromServer,
+  isAuthenticated,
+  canUsePartialRegeneration,
 }: UseImageGenerationProps) {
   const [selectedGenerationId, setSelectedGenerationId] = useState<string | null>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -240,11 +311,18 @@ export function useImageGeneration({
     onToast("Generation cancelled", "error")
   }
 
-  const generateImage = async () => {
+  const generateImage = async (regenerationType: "full" | "partial" = "full") => {
     const hasImages = useUrls ? image1Url : image1
 
     if (!hasImages) {
       onToast("Please upload a photo first", "error")
+      return
+    }
+
+    // Partial regeneration requires authentication and paid credits
+    if (regenerationType === "partial" && !canUsePartialRegeneration) {
+      onToast("Partial regeneration requires paid credits", "error")
+      onShowAuthModal()
       return
     }
 
@@ -254,10 +332,16 @@ export function useImageGeneration({
       return
     }
 
-    // Decrement optimistic count for unauthenticated users
-    decrementOptimistic()
+    // Decrement optimistic count
+    // Note: For partial regeneration, credit is already deducted by partialRegeneration()
+    // Only deduct for full regeneration to avoid double-charging
+    if (regenerationType === "full") {
+      decrementOptimistic()
+    }
 
-    const fullPrompt = buildAvatarPrompt(avatarStyle, background, colorMood, prompt)
+    const fullPrompt = regenerationType === "partial"
+      ? buildPartialRegenerationPrompt(background, colorMood, prompt)
+      : buildAvatarPrompt(avatarStyle, background, colorMood, prompt)
 
     const generationId = `gen-${Date.now()}-${Math.random().toString(36).substring(7)}`
     const controller = new AbortController()
@@ -267,10 +351,11 @@ export function useImageGeneration({
       status: "loading",
       progress: 0,
       imageUrl: null,
-      prompt: `${avatarStyle} style avatar`,
+      prompt: regenerationType === "partial" ? "Partial regeneration" : `${avatarStyle} style avatar`,
       timestamp: Date.now(),
       abortController: controller,
       avatarStyle,
+      regenerationType,
     }
 
     setGenerations((prev) => [newGeneration, ...prev])
@@ -309,6 +394,7 @@ export function useImageGeneration({
       formData.append("avatarStyle", avatarStyle)
       formData.append("background", background)
       formData.append("colorMood", colorMood)
+      formData.append("regenerationType", regenerationType)
 
       if (useUrls) {
         formData.append("image1Url", image1Url)
@@ -374,12 +460,13 @@ export function useImageGeneration({
           status: "complete",
           progress: 100,
           imageUrl: data.url,
-          prompt: `${avatarStyle} style avatar`,
+          prompt: regenerationType === "partial" ? "Partial regeneration" : `${avatarStyle} style avatar`,
           timestamp: Date.now(),
           createdAt: new Date().toISOString(),
           aspectRatio: "square",
           mode: "avatar",
           avatarStyle,
+          regenerationType,
         }
 
         setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
@@ -422,6 +509,58 @@ export function useImageGeneration({
     }
   }
 
+  const partialRegeneration = async () => {
+    // Check authentication
+    if (!isAuthenticated) {
+      onShowAuthModal()
+      onToast("Please sign in to use partial regeneration", "error")
+      return
+    }
+
+    // Check if user can use partial regeneration
+    if (!canUsePartialRegeneration) {
+      onToast("You need at least 0.5 paid credits to use partial regeneration", "error")
+      return
+    }
+
+    // Ensure there's a generated image to regenerate from
+    const selectedGeneration = generations.find((g) => g.id === selectedGenerationId)
+    if (!selectedGeneration?.imageUrl) {
+      onToast("Please generate an image first before using partial regeneration", "error")
+      return
+    }
+
+    // Validate that the image is complete (not loading or error)
+    if (selectedGeneration.status !== "complete") {
+      onToast("Please wait for the current generation to complete", "error")
+      return
+    }
+
+    try {
+      const response = await fetch(selectedGeneration.imageUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      const file = new File([blob], "generated-avatar.png", { type: "image/png" })
+
+      await onImageUpload(file, 1)
+
+      // Decrement partial credit (0.5 credits = 1 unit)
+      if (decrementOptimisticPartial) {
+        decrementOptimisticPartial()
+      }
+
+      // Run generation with partial type
+      await generateImage("partial")
+    } catch (error) {
+      console.error("Error in partial regeneration:", error)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      onToast(`Failed to start partial regeneration: ${errorMessage}`, "error")
+    }
+  }
+
   return {
     selectedGenerationId,
     setSelectedGenerationId,
@@ -430,5 +569,6 @@ export function useImageGeneration({
     generateImage,
     cancelGeneration,
     loadGeneratedAsInput,
+    partialRegeneration,
   }
 }

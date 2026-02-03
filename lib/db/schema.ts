@@ -102,6 +102,9 @@ export const generationLog = pgTable("generation_log", {
   avatarStyle: text("avatar_style"),
   background: text("background"),
   colorMood: text("color_mood"),
+  // NOTE: regenerationType added for partial regeneration feature
+  // Migration: ALTER TABLE generation_log ADD COLUMN regeneration_type TEXT;
+  regenerationType: text("regeneration_type"), // full, partial
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   ipAddress: text("ip_address"),

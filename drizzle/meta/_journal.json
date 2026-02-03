@@ -29,6 +29,13 @@
       "when": 1769202482951,
       "tag": "0003_overconfident_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770134086819,
+      "tag": "0004_pale_king_cobra",
+      "breakpoints": true
     }
   ]
 }

@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     const avatarStyle = formData.get("avatarStyle") as string || null
     const background = formData.get("background") as string || null
     const colorMood = formData.get("colorMood") as string || null
+    const regenerationType = (formData.get("regenerationType") as string) || "full"
 
     if (!mode) {
       return NextResponse.json<ErrorResponse>({ error: "Mode is required" }, { status: 400 })
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       avatarStyle: avatarStyle || undefined,
       background: background || undefined,
       colorMood: colorMood || undefined,
+      regenerationType: regenerationType || undefined,
       ipAddress,
       userAgent,
     })

@@ -21,6 +21,9 @@ interface OutputSectionProps {
   onCopy: () => void
   onOpenInNewTab: () => void
   onLoadAsInput: () => void
+  onPartialRegeneration: () => void
+  isAuthenticated: boolean
+  canUsePartialRegeneration: boolean
 }
 
 function ShimmerSkeleton() {
@@ -100,6 +103,9 @@ export function OutputSection({
   onCopy,
   onOpenInNewTab,
   onLoadAsInput,
+  onPartialRegeneration,
+  isAuthenticated,
+  canUsePartialRegeneration,
 }: OutputSectionProps) {
   const isMobile = useMobile()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -217,6 +223,7 @@ export function OutputSection({
     loadAsInput: { loading: false, success: false },
     copy: { loading: false, success: false },
     download: { loading: false, success: false },
+    partialRegen: { loading: false, success: false },
   })
 
   // Reset success states after animation
@@ -246,6 +253,15 @@ export function OutputSection({
       return () => clearTimeout(timer)
     }
   }, [buttonStates.download.success])
+
+  useEffect(() => {
+    if (buttonStates.partialRegen.success) {
+      const timer = setTimeout(() => {
+        setButtonStates((prev) => ({ ...prev, partialRegen: { ...prev.partialRegen, success: false } }))
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [buttonStates.partialRegen.success])
 
   const handleLoadAsInput = async () => {
     setButtonStates((prev) => ({ ...prev, loadAsInput: { loading: true, success: false } }))
@@ -277,6 +293,16 @@ export function OutputSection({
     }
   }
 
+  const handlePartialRegeneration = async () => {
+    setButtonStates((prev) => ({ ...prev, partialRegen: { loading: true, success: false } }))
+    try {
+      await onPartialRegeneration()
+      setButtonStates((prev) => ({ ...prev, partialRegen: { loading: false, success: true } }))
+    } catch (error) {
+      setButtonStates((prev) => ({ ...prev, partialRegen: { loading: false, success: false } }))
+    }
+  }
+
   const renderButtons = (className?: string) => (
     <div className={className}>
       <AnimatedButton
@@ -305,6 +331,33 @@ export function OutputSection({
           )
         }
         label="Use as Input"
+      />
+      <AnimatedButton
+        onClick={handlePartialRegeneration}
+        disabled={!generatedImage || !canUsePartialRegeneration}
+        title={isAuthenticated ? "Partial Regen (0.5 credit)" : "Sign in to use Partial Regeneration"}
+        tooltip={isAuthenticated ? "Change background & lighting only - Save 50% credits!" : "Sign in to use this feature"}
+        isLoading={buttonStates.partialRegen.loading}
+        icon={
+          buttonStates.partialRegen.success ? (
+            <motion.svg
+              className="w-3 h-3 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </motion.svg>
+          ) : (
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          )
+        }
+        label="Partial Regen"
       />
       <AnimatedButton
         onClick={handleCopy}

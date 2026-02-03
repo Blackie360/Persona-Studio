@@ -6,9 +6,13 @@ import { useSession } from "@/lib/auth-client"
 const STORAGE_KEY = "generation_count"
 const STORAGE_KEY_AUTH = "generation_count_auth"
 const STORAGE_KEY_PAID_USED = "paid_generations_used"
+const STORAGE_KEY_PAID_UNITS_USED = "paid_generation_units_used"
 const FREE_LIMIT = 2
 const AUTH_LIMIT = 3 // Additional generations after authentication
 const RESET_DAYS = 7
+const UNITS_PER_CREDIT = 2 // 2 units = 1 credit, allows 0.5 credit (1 unit) for partial regen
+const FULL_GENERATION_UNITS = 2 // 1 full credit = 2 units
+const PARTIAL_GENERATION_UNITS = 1 // 0.5 credits = 1 unit
 
 interface GenerationData {
   count: number
@@ -29,6 +33,7 @@ export function useGenerationLimit() {
   const [usageLoading, setUsageLoading] = useState(false)
   const [paidGenerations, setPaidGenerations] = useState<number>(0)
   const [paidGenerationsUsed, setPaidGenerationsUsed] = useState<number>(0)
+  const [paidUnitsUsed, setPaidUnitsUsed] = useState<number>(0)
   const [serverRemaining, setServerRemaining] = useState<number | null>(null)
 
   // Load and validate unauthenticated generation count from localStorage
@@ -183,13 +188,43 @@ export function useGenerationLimit() {
     }
   }, [userId])
 
+  // Load paid generation units used from localStorage
+  const loadPaidUnitsUsed = useCallback((): number => {
+    if (typeof window === "undefined" || !userId) {
+      return 0
+    }
+
+    try {
+      const stored = localStorage.getItem(`${STORAGE_KEY_PAID_UNITS_USED}_${userId}`)
+      if (!stored) {
+        return 0
+      }
+      return parseInt(stored, 10) || 0
+    } catch (error) {
+      console.error("Error loading paid units used:", error)
+      return 0
+    }
+  }, [userId])
+
+  // Save paid generation units used to localStorage
+  const savePaidUnitsUsed = useCallback((units: number) => {
+    if (typeof window === "undefined" || !userId) return
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PAID_UNITS_USED}_${userId}`, units.toString())
+    } catch (error) {
+      console.error("Error saving paid units used:", error)
+    }
+  }, [userId])
+
   // Initialize remaining count and fetch paid credits
   useEffect(() => {
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData ? authData.count : 0
       const paidUsed = loadPaidGenerationsUsed()
+      const unitsUsed = loadPaidUnitsUsed()
       setPaidGenerationsUsed(paidUsed)
+      setPaidUnitsUsed(unitsUsed)
       
       // Fetch paid credits from API
       fetchPaidCredits()
@@ -202,27 +237,32 @@ export function useGenerationLimit() {
       fetchServerRemaining()
       setPaidGenerations(0)
       setPaidGenerationsUsed(0)
+      setPaidUnitsUsed(0)
     }
-  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, loadPaidGenerationsUsed, fetchPaidCredits, fetchServerRemaining])
+  }, [isAuthenticated, userId, loadGenerationCount, loadAuthGenerationCount, loadPaidGenerationsUsed, loadPaidUnitsUsed, fetchPaidCredits, fetchServerRemaining])
 
   // Update remaining when paid credits are fetched
   useEffect(() => {
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData ? authData.count : 0
-      const availablePaid = Math.max(0, paidGenerations - paidGenerationsUsed)
-      setRemaining(Math.max(0, AUTH_LIMIT - freeUsed + availablePaid))
+      // Calculate available paid credits in terms of units (2 units = 1 credit)
+      const totalPaidUnits = paidGenerations * UNITS_PER_CREDIT
+      const availablePaidUnits = Math.max(0, totalPaidUnits - paidUnitsUsed)
+      // Convert units back to fractional credits for display
+      const availablePaidCredits = availablePaidUnits / UNITS_PER_CREDIT
+      setRemaining(Math.max(0, AUTH_LIMIT - freeUsed + availablePaidCredits))
     }
-  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadAuthGenerationCount])
+  }, [isAuthenticated, userId, paidGenerations, paidUnitsUsed, loadAuthGenerationCount])
 
-  // Decrement count optimistically (for UI updates)
+  // Decrement count optimistically (for UI updates) - full credit (2 units)
   const decrementOptimistic = useCallback(() => {
     setUsageLoading(true)
     
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData?.count || 0
-      const paidUsed = paidGenerationsUsed
+      const unitsUsed = paidUnitsUsed
       
       // Check if we should use free generations first
       if (freeUsed < AUTH_LIMIT) {
@@ -234,15 +274,19 @@ export function useGenerationLimit() {
           timestamp: authData?.timestamp || Date.now(),
         }
         saveAuthGenerationCount(newData)
-        const availablePaid = Math.max(0, paidGenerations - paidUsed)
-        setRemaining(Math.max(0, AUTH_LIMIT - newCount + availablePaid))
+        const totalPaidUnits = paidGenerations * UNITS_PER_CREDIT
+        const availablePaidUnits = Math.max(0, totalPaidUnits - unitsUsed)
+        const availablePaidCredits = availablePaidUnits / UNITS_PER_CREDIT
+        setRemaining(Math.max(0, AUTH_LIMIT - newCount + availablePaidCredits))
       } else {
-        // Use paid generation
-        const newPaidUsed = paidUsed + 1
-        savePaidGenerationsUsed(newPaidUsed)
-        setPaidGenerationsUsed(newPaidUsed)
-        const availablePaid = Math.max(0, paidGenerations - newPaidUsed)
-        setRemaining(Math.max(0, availablePaid))
+        // Use paid generation (2 units = 1 full credit)
+        const newUnitsUsed = unitsUsed + FULL_GENERATION_UNITS
+        savePaidUnitsUsed(newUnitsUsed)
+        setPaidUnitsUsed(newUnitsUsed)
+        const totalPaidUnits = paidGenerations * UNITS_PER_CREDIT
+        const availablePaidUnits = Math.max(0, totalPaidUnits - newUnitsUsed)
+        const availablePaidCredits = availablePaidUnits / UNITS_PER_CREDIT
+        setRemaining(Math.max(0, availablePaidCredits))
       }
     } else {
       // For unauthenticated users, optimistically decrement
@@ -252,7 +296,35 @@ export function useGenerationLimit() {
     }
     
     setUsageLoading(false)
-  }, [isAuthenticated, userId, paidGenerations, paidGenerationsUsed, loadAuthGenerationCount, saveAuthGenerationCount, savePaidGenerationsUsed, serverRemaining, remaining])
+  }, [isAuthenticated, userId, paidGenerations, paidUnitsUsed, loadAuthGenerationCount, saveAuthGenerationCount, savePaidUnitsUsed, serverRemaining, remaining])
+
+  // Decrement count optimistically for partial regeneration (half credit = 1 unit)
+  const decrementOptimisticPartial = useCallback(() => {
+    setUsageLoading(true)
+
+    if (isAuthenticated && userId) {
+      const authData = loadAuthGenerationCount()
+      const freeUsed = authData?.count || 0
+      const unitsUsed = paidUnitsUsed
+
+      // Partial regeneration can only use paid credits, not free generations
+      if (freeUsed >= AUTH_LIMIT) {
+        // Use paid generation (1 unit = 0.5 credits)
+        const newUnitsUsed = unitsUsed + PARTIAL_GENERATION_UNITS
+        savePaidUnitsUsed(newUnitsUsed)
+        setPaidUnitsUsed(newUnitsUsed)
+        const totalPaidUnits = paidGenerations * UNITS_PER_CREDIT
+        const availablePaidUnits = Math.max(0, totalPaidUnits - newUnitsUsed)
+        const availablePaidCredits = availablePaidUnits / UNITS_PER_CREDIT
+        setRemaining(Math.max(0, availablePaidCredits))
+      } else {
+        // Should not happen - partial regen should only be available when using paid credits
+        console.warn("Partial regeneration attempted with free credits")
+      }
+    }
+
+    setUsageLoading(false)
+  }, [isAuthenticated, userId, paidGenerations, paidUnitsUsed, savePaidUnitsUsed])
 
   // Update remaining from server response
   const updateRemainingFromServer = useCallback((serverRemainingCount: number) => {
@@ -273,6 +345,7 @@ export function useGenerationLimit() {
     remaining,
     canGenerate,
     decrementOptimistic,
+    decrementOptimisticPartial,
     usageLoading,
     paidGenerations,
     refreshCredits,

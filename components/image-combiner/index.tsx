@@ -167,6 +167,7 @@ export function ImageCombiner() {
     remaining,
     canGenerate: canGenerateFromLimit,
     decrementOptimistic,
+    decrementOptimisticPartial,
     usageLoading,
     refreshCredits,
     updateRemainingFromServer,
@@ -187,6 +188,11 @@ export function ImageCombiner() {
     isLoadingMore,
   } = usePersistentHistory(showToast)
 
+  const hasImages = useUrls ? !!image1Url : !!image1
+  const canGenerate = hasImages && canGenerateFromLimit
+  // Partial regeneration is available for authenticated users with at least 0.5 credits remaining
+  const canUsePartialRegeneration = isAuthenticated && remaining >= 0.5
+
   const {
     selectedGenerationId,
     setSelectedGenerationId,
@@ -195,6 +201,7 @@ export function ImageCombiner() {
     generateImage: runGeneration,
     cancelGeneration,
     loadGeneratedAsInput,
+    partialRegeneration,
   } = useImageGeneration({
     prompt,
     aspectRatio,
@@ -214,7 +221,10 @@ export function ImageCombiner() {
     canGenerate: canGenerateFromLimit,
     onShowAuthModal: () => setShowAuthModal(true),
     decrementOptimistic,
+    decrementOptimisticPartial,
     updateRemainingFromServer,
+    isAuthenticated,
+    canUsePartialRegeneration,
   })
 
   const selectedGeneration = persistedGenerations.find((g) => g.id === selectedGenerationId) || persistedGenerations[0]
@@ -223,9 +233,6 @@ export function ImageCombiner() {
     selectedGeneration?.status === "complete" && selectedGeneration.imageUrl
       ? { url: selectedGeneration.imageUrl, prompt: selectedGeneration.prompt }
       : null
-
-  const hasImages = useUrls ? !!image1Url : !!image1
-  const canGenerate = hasImages && canGenerateFromLimit
 
   // Show auth modal automatically when limit is reached and user tries to generate
   useEffect(() => {
@@ -602,6 +609,12 @@ export function ImageCombiner() {
           loadGeneratedAsInput()
         }
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "p" && generatedImage && canUsePartialRegeneration) {
+        if (!isTyping) {
+          e.preventDefault()
+          partialRegeneration()
+        }
+      }
       if (e.key === "Escape" && showFullscreen) {
         closeFullscreen()
       }
@@ -630,6 +643,8 @@ export function ImageCombiner() {
       copyImageToClipboard,
       downloadImage,
       loadGeneratedAsInput,
+      partialRegeneration,
+      canUsePartialRegeneration,
       closeFullscreen,
       persistedGenerations,
       fullscreenImageUrl,
@@ -989,6 +1004,9 @@ export function ImageCombiner() {
                   onCopy={copyImageToClipboard}
                   onOpenInNewTab={openImageInNewTab}
                   onLoadAsInput={loadGeneratedAsInput}
+                  onPartialRegeneration={partialRegeneration}
+                  isAuthenticated={isAuthenticated}
+                  canUsePartialRegeneration={canUsePartialRegeneration}
                 />
               </div>
 
@@ -1087,6 +1105,9 @@ export function ImageCombiner() {
                     onCopy={copyImageToClipboard}
                     onOpenInNewTab={openImageInNewTab}
                     onLoadAsInput={loadGeneratedAsInput}
+                    onPartialRegeneration={partialRegeneration}
+                    isAuthenticated={isAuthenticated}
+                    canUsePartialRegeneration={canUsePartialRegeneration}
                   />
                 </div>
               </div>
