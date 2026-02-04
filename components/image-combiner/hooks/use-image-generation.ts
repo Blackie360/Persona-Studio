@@ -311,7 +311,10 @@ export function useImageGeneration({
     onToast("Generation cancelled", "error")
   }
 
-  const generateImage = async (regenerationType: "full" | "partial" = "full") => {
+  const generateImage = async (
+    regenerationType: "full" | "partial" = "full",
+    additionalInstructionsOverride?: string,
+  ) => {
     const hasImages = useUrls ? image1Url : image1
 
     if (!hasImages) {
@@ -339,9 +342,13 @@ export function useImageGeneration({
       decrementOptimistic()
     }
 
-    const fullPrompt = regenerationType === "partial"
-      ? buildPartialRegenerationPrompt(background, colorMood, prompt)
-      : buildAvatarPrompt(avatarStyle, background, colorMood, prompt)
+    const additionalInstructions =
+      regenerationType === "partial" ? additionalInstructionsOverride ?? prompt : prompt
+
+    const fullPrompt =
+      regenerationType === "partial"
+        ? buildPartialRegenerationPrompt(background, colorMood, additionalInstructions)
+        : buildAvatarPrompt(avatarStyle, background, colorMood, additionalInstructions)
 
     const generationId = `gen-${Date.now()}-${Math.random().toString(36).substring(7)}`
     const controller = new AbortController()
@@ -509,7 +516,7 @@ export function useImageGeneration({
     }
   }
 
-  const partialRegeneration = async () => {
+  const partialRegeneration = async (additionalInstructions?: string) => {
     // Check authentication
     if (!isAuthenticated) {
       onShowAuthModal()
@@ -553,7 +560,7 @@ export function useImageGeneration({
       }
 
       // Run generation with partial type
-      await generateImage("partial")
+      await generateImage("partial", additionalInstructions)
     } catch (error) {
       console.error("Error in partial regeneration:", error)
       const errorMessage = error instanceof Error ? error.message : "Unknown error"

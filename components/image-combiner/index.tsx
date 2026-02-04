@@ -10,6 +10,7 @@ import { useImageGeneration } from "./hooks/use-image-generation"
 import { useAspectRatio } from "./hooks/use-aspect-ratio"
 import { useGenerationLimit } from "./hooks/use-generation-limit"
 import { HowItWorksModal } from "./how-it-works-modal"
+import { PartialRegenerationModal } from "./partial-regeneration-modal"
 import { AuthModal } from "@/components/auth-modal"
 import { PaymentModal } from "@/components/payment-modal"
 import { PricingModal } from "@/components/pricing-modal"
@@ -133,6 +134,8 @@ export function ImageCombiner() {
   const [showPricingModal, setShowPricingModal] = useState(false)
   const [isGeneralLogin, setIsGeneralLogin] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(false)
+  const [showPartialRegenerationModal, setShowPartialRegenerationModal] = useState(false)
+  const [isPartialRegenerationLoading, setIsPartialRegenerationLoading] = useState(false)
 
   const [leftWidth, setLeftWidth] = useState(50)
   const [isResizing, setIsResizing] = useState(false)
@@ -233,6 +236,23 @@ export function ImageCombiner() {
     selectedGeneration?.status === "complete" && selectedGeneration.imageUrl
       ? { url: selectedGeneration.imageUrl, prompt: selectedGeneration.prompt }
       : null
+
+  const openPartialRegenerationModal = useCallback(() => {
+    setShowPartialRegenerationModal(true)
+  }, [])
+
+  const handlePartialRegenerationSubmit = useCallback(
+    async (instructions?: string) => {
+      setIsPartialRegenerationLoading(true)
+      try {
+        await partialRegeneration(instructions)
+      } finally {
+        setIsPartialRegenerationLoading(false)
+        setShowPartialRegenerationModal(false)
+      }
+    },
+    [partialRegeneration],
+  )
 
   // Show auth modal automatically when limit is reached and user tries to generate
   useEffect(() => {
@@ -612,7 +632,7 @@ export function ImageCombiner() {
       if ((e.metaKey || e.ctrlKey) && e.key === "p" && generatedImage && canUsePartialRegeneration) {
         if (!isTyping) {
           e.preventDefault()
-          partialRegeneration()
+          openPartialRegenerationModal()
         }
       }
       if (e.key === "Escape" && showFullscreen) {
@@ -643,7 +663,7 @@ export function ImageCombiner() {
       copyImageToClipboard,
       downloadImage,
       loadGeneratedAsInput,
-      partialRegeneration,
+      openPartialRegenerationModal,
       canUsePartialRegeneration,
       closeFullscreen,
       persistedGenerations,
@@ -1004,7 +1024,8 @@ export function ImageCombiner() {
                   onCopy={copyImageToClipboard}
                   onOpenInNewTab={openImageInNewTab}
                   onLoadAsInput={loadGeneratedAsInput}
-                  onPartialRegeneration={partialRegeneration}
+                  onPartialRegeneration={openPartialRegenerationModal}
+                  isPartialRegenerationLoading={isPartialRegenerationLoading}
                   isAuthenticated={isAuthenticated}
                   canUsePartialRegeneration={canUsePartialRegeneration}
                 />
@@ -1105,7 +1126,8 @@ export function ImageCombiner() {
                     onCopy={copyImageToClipboard}
                     onOpenInNewTab={openImageInNewTab}
                     onLoadAsInput={loadGeneratedAsInput}
-                    onPartialRegeneration={partialRegeneration}
+                    onPartialRegeneration={openPartialRegenerationModal}
+                    isPartialRegenerationLoading={isPartialRegenerationLoading}
                     isAuthenticated={isAuthenticated}
                     canUsePartialRegeneration={canUsePartialRegeneration}
                   />
@@ -1141,6 +1163,13 @@ export function ImageCombiner() {
         isOpen={showFullscreen}
         imageUrl={fullscreenImageUrl}
         onClose={closeFullscreen}
+      />
+
+      <PartialRegenerationModal
+        isOpen={showPartialRegenerationModal}
+        isSubmitting={isPartialRegenerationLoading}
+        onClose={() => setShowPartialRegenerationModal(false)}
+        onConfirm={handlePartialRegenerationSubmit}
       />
 
       <HowItWorksModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
