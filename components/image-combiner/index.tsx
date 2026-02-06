@@ -173,7 +173,7 @@ export function ImageCombiner() {
     decrementOptimisticPartial,
     usageLoading,
     refreshCredits,
-    updateRemainingFromServer,
+    fetchServerRemaining,
   } = useGenerationLimit()
 
   const { data: session } = useSession()
@@ -225,7 +225,7 @@ export function ImageCombiner() {
     onShowAuthModal: () => setShowAuthModal(true),
     decrementOptimistic,
     decrementOptimisticPartial,
-    updateRemainingFromServer,
+    fetchServerRemaining,
     isAuthenticated,
     canUsePartialRegeneration,
   })

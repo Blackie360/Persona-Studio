@@ -25,7 +25,7 @@ interface UseImageGenerationProps {
   onShowAuthModal: () => void
   decrementOptimistic: () => void
   decrementOptimisticPartial?: () => void
-  updateRemainingFromServer?: (remaining: number) => void
+  fetchServerRemaining?: () => Promise<void>
   isAuthenticated: boolean
   canUsePartialRegeneration: boolean
 }
@@ -251,7 +251,7 @@ export function useImageGeneration({
   onShowAuthModal,
   decrementOptimistic,
   decrementOptimisticPartial,
-  updateRemainingFromServer,
+  fetchServerRemaining,
   isAuthenticated,
   canUsePartialRegeneration,
 }: UseImageGenerationProps) {
@@ -417,18 +417,13 @@ export function useImageGeneration({
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "")
-        let errorData: { error?: string; details?: string; remaining?: number } | null = null
+        let errorData: { error?: string; details?: string; message?: string } | null = null
         if (errorBody) {
           try {
             errorData = JSON.parse(errorBody)
           } catch (parseError) {
             errorData = null
           }
-        }
-
-        // Update remaining count from error response (especially for 429 rate limit)
-        if (errorData?.remaining !== undefined && updateRemainingFromServer) {
-          updateRemainingFromServer(errorData.remaining)
         }
 
         if (errorData?.error === "Configuration error" && errorData.details?.includes("AI_GATEWAY_API_KEY")) {
@@ -444,6 +439,10 @@ export function useImageGeneration({
           setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
           const rateLimitMessage = errorData?.message || errorData?.error || "Rate limit exceeded. Please sign up to continue generating images."
           onToast(rateLimitMessage, "error")
+          // Re-fetch the actual remaining count from the server
+          if (fetchServerRemaining) {
+            fetchServerRemaining()
+          }
           onShowAuthModal()
           return
         }
@@ -456,9 +455,9 @@ export function useImageGeneration({
 
       clearInterval(progressInterval)
 
-      // Update remaining count from successful response
-      if (data.remaining !== undefined && updateRemainingFromServer) {
-        updateRemainingFromServer(data.remaining)
+      // Re-fetch the remaining count from the server after generation
+      if (!isAuthenticated && fetchServerRemaining) {
+        fetchServerRemaining()
       }
 
       if (data.url) {
