@@ -196,4 +196,3 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
     </Dialog>
   )
 }
-
