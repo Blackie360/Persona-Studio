@@ -148,7 +148,7 @@ export const payment = pgTable("payment", {
   amount: integer("amount").notNull(), // Amount in smallest currency unit (cents/kobo)
   currency: text("currency").default("KES").notNull(),
   status: text("status").notNull().default("pending"), // pending, success, failed, cancelled
-  generationsGranted: integer("generations_granted").default(5).notNull(),
+  generationsGranted: integer("generations_granted").default(10).notNull(),
   metadata: text("metadata"), // JSON string for additional data
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
