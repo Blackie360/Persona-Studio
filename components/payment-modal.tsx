@@ -87,5 +87,3 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
     </Dialog>
   )
 }
-
-
