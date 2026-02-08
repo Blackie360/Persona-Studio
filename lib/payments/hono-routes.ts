@@ -12,8 +12,8 @@ export const paymentRoutes = new Hono()
 
 // Payment schema - accepts optional plan parameters and email for unauthenticated users
 const initiatePaymentSchema = z.object({
-  amount: z.number().optional(), // Amount in KES (e.g., 5 or 100)
-  generationsGranted: z.number().optional(), // Number of generations (e.g., 5 or 20)
+  amount: z.number().optional(), // Amount in KES (e.g., 100)
+  generationsGranted: z.number().optional(), // Number of generations (e.g., 10)
   email: z.string().email().optional(), // Email for unauthenticated users
 })
 
@@ -51,22 +51,14 @@ paymentRoutes.post(
       let amount: number
       let generationsGranted: number
 
-      if (requestAmount && requestGenerations) {
-        // Use provided values
-        amount = requestAmount
-        generationsGranted = requestGenerations
-      } else if (requestAmount === 5 || (!requestAmount && !requestGenerations)) {
-        // Default plan: KES 5 for 5 generations
-        amount = 5
-        generationsGranted = 5
-      } else if (requestAmount === 100) {
-        // Plan 2: KES 100 for 20 generations
+      if (requestAmount === 100 || (!requestAmount && !requestGenerations)) {
+        // Single plan: KES 100 for 10 generations
         amount = 100
-        generationsGranted = 20
+        generationsGranted = 10
       } else {
-        // Fallback to default
-        amount = 5
-        generationsGranted = 5
+        // Fallback to default plan
+        amount = 100
+        generationsGranted = 10
       }
 
       // Create payment record
@@ -99,7 +91,7 @@ paymentRoutes.post(
       try {
         const paystackResponse = await initializeTransaction({
           email: userEmail,
-          amount: amount * 100, // KES 5.00 = 500 in smallest unit
+          amount: amount * 100, // KES 100 = 10000 in smallest unit
           currency: "KES",
           channels: ["mobile_money"], // Prioritize M-Pesa
           callback_url: callbackUrl,
