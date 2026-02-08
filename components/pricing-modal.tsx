@@ -15,17 +15,10 @@ interface PricingModalProps {
 
 const PRICING_PLANS = [
   {
-    amount: 5,
-    generations: 5,
-    label: "Starter",
-    description: "Perfect for trying out",
-  },
-  {
     amount: 100,
-    generations: 20,
+    generations: 10,
     label: "Value Pack",
-    description: "Best value for more generations",
-    popular: true,
+    description: "10 generations via M-Pesa",
   },
 ]
 
@@ -130,19 +123,16 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
           )}
 
           {/* Pricing Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 max-w-md mx-auto">
             {PRICING_PLANS.map((plan) => (
               <Card
                 key={plan.amount}
                 className={`bg-black/40 border-gray-700 backdrop-blur-sm cursor-pointer transition-all hover:border-gray-600 ${
                   selectedPlan?.amount === plan.amount ? "border-green-500 ring-2 ring-green-500/50" : ""
-                } ${plan.popular ? "ring-2 ring-yellow-500/50" : ""}`}
+                }`}
                 onClick={() => handlePlanSelect(plan)}
               >
                 <CardHeader className="pb-3 sm:pb-6">
-                  {plan.popular && (
-                    <div className="text-xs sm:text-sm font-semibold text-yellow-400 mb-2">POPULAR</div>
-                  )}
                   <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
                     KES {plan.amount}
                   </CardTitle>
