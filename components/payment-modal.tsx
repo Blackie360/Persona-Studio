@@ -59,7 +59,7 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
             Purchase More Generations
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Pay KES 5 via M-Pesa to unlock 5 additional generations. You'll be redirected to our secure checkout page.
+            Pay KES 100 via M-Pesa to unlock 10 additional generations. You'll be redirected to our secure checkout page.
           </DialogDescription>
         </DialogHeader>
         
@@ -87,5 +87,3 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
     </Dialog>
   )
 }
-
-

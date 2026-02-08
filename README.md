@@ -19,8 +19,7 @@ An AI-powered avatar generation application that transforms your photos into stu
   - 2 free generations for unauthenticated users
   - 3 additional free generations for authenticated users (resets every 7 days)
 - **Payment Integration**: Pay via M-Pesa through Paystack
-  - Starter Plan: KES 5 for 5 generations
-  - Value Pack: KES 100 for 20 generations
+  - Value Pack: KES 100 for 10 generations
 - **Responsive Design**: Fully responsive across all screen sizes (mobile, tablet, desktop)
 - **Admin Dashboard**: Comprehensive analytics and user management
 - **Payment Analytics**: Track payments, revenue, and customer behavior
@@ -107,8 +106,7 @@ An AI-powered avatar generation application that transforms your photos into stu
 - **Partial Regeneration**: Use 0.5 credits to change only background/lighting (paid credits only)
 
 ### Payment Plans
-- **Starter Plan**: KES 5 → 5 generations (or 10 partial regenerations)
-- **Value Pack**: KES 100 → 20 generations (or 40 partial regenerations)
+- **Value Pack**: KES 100 → 10 generations (or 20 partial regenerations)
 
 ### Credit System
 - **Full Generation**: 1.0 credit - Complete avatar transformation
