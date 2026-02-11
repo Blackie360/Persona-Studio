@@ -77,6 +77,11 @@ function buildAvatarPrompt(
 - Cinematic high-contrast lighting
 - Sci-fi atmosphere
 - Ultra-detailed, sharp, futuristic look`,
+    vintage: `High-quality classic vintage film portrait style.
+- Authentic film photography look (1970s-80s portrait or timeless film stock aesthetic)
+- Warm, slightly faded color grading with period-appropriate tones
+- Subtle film grain and soft, flattering lighting
+- Photorealistic with authentic vintage character - no cartoon elements`,
     simpsons: `Classic Simpsons cartoon animation style.
 - Distinctive yellow skin tone (Simpsons signature color)
 - Bold black outlines around all features
