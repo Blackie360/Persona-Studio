@@ -31,6 +31,11 @@ export const AVATAR_STYLES = [
     label: "Cyberpunk",
     description: "Futuristic portrait with neon lighting",
   },
+  {
+    value: "vintage",
+    label: "Vintage",
+    description: "Classic vintage film portrait with period color grading and subtle film grain",
+  },
 ]
 
 export const BACKGROUND_OPTIONS = [

@@ -4,7 +4,7 @@ import type React from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash2, Briefcase, Linkedin, Sparkles, Zap, Tv, Smile } from "lucide-react"
+import { Trash2, Briefcase, Linkedin, Sparkles, Zap, Tv, Smile, Film } from "lucide-react"
 import { ImageUploadBox } from "./image-upload-box"
 import { cn } from "@/lib/utils"
 import { AVATAR_STYLES, BACKGROUND_OPTIONS, COLOR_MOOD_OPTIONS } from "./constants"
@@ -64,6 +64,7 @@ const styleIcons: Record<string, React.ReactNode> = {
   linkedin: <Linkedin className="size-4" />,
   anime: <Sparkles className="size-4" />,
   cyberpunk: <Zap className="size-4" />,
+  vintage: <Film className="size-4" />,
   simpsons: <Tv className="size-4" />,
   "family-guy": <Smile className="size-4" />,
 }
@@ -73,6 +74,7 @@ const styleGlowColors: Record<string, string> = {
   linkedin: "shadow-[0_0_15px_rgba(14,165,233,0.5)]",
   anime: "shadow-[0_0_15px_rgba(236,72,153,0.5)]",
   cyberpunk: "shadow-[0_0_15px_rgba(168,85,247,0.5)]",
+  vintage: "shadow-[0_0_15px_rgba(210,105,30,0.5)]",
   simpsons: "shadow-[0_0_15px_rgba(255,193,7,0.5)]",
   "family-guy": "shadow-[0_0_15px_rgba(255,87,34,0.5)]",
 }
