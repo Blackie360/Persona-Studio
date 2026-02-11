@@ -74,6 +74,7 @@ const styleGlowColors: Record<string, string> = {
   linkedin: "shadow-[0_0_15px_rgba(14,165,233,0.5)]",
   anime: "shadow-[0_0_15px_rgba(236,72,153,0.5)]",
   cyberpunk: "shadow-[0_0_15px_rgba(168,85,247,0.5)]",
+  vintage: "shadow-[0_0_15px_rgba(210,105,30,0.5)]",
   simpsons: "shadow-[0_0_15px_rgba(255,193,7,0.5)]",
   "family-guy": "shadow-[0_0_15px_rgba(255,87,34,0.5)]",
 }
