@@ -67,11 +67,13 @@ export function AuthModal({ isOpen, onClose, afterPayment = false, isGeneralLogi
         </DialogHeader>
         <div className="flex flex-col gap-4 mt-4">
           <Button
+            type="button"
             onClick={handleSignIn}
             disabled={isLoading}
-            className="w-full h-12 bg-white text-black hover:bg-gray-200 font-semibold cursor-pointer"
+            className="focus-ring w-full h-12 bg-white text-black hover:bg-gray-200 font-semibold cursor-pointer"
+            aria-busy={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign in with Google"}
+            {isLoading ? "Signing In…" : "Sign In with Google"}
           </Button>
           <p className="text-xs text-gray-500 text-center">
             {getFooterText()}
@@ -81,4 +83,3 @@ export function AuthModal({ isOpen, onClose, afterPayment = false, isGeneralLogi
     </Dialog>
   )
 }
-

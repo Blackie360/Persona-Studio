@@ -90,7 +90,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport = {
-  themeColor: "#000000",
+  themeColor: "#080908",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -106,13 +106,13 @@ export default function RootLayout({
       lang="en"
       className={`dark ${abeeZee.variable} ${adamina.variable} ${chivoMono.variable}`}
       suppressHydrationWarning
-      style={{ backgroundColor: "#000000" }}
+      style={{ backgroundColor: "#080908", colorScheme: "dark" }}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="font-sans antialiased" style={{ backgroundColor: "#000000" }} suppressHydrationWarning>
+      <body className="font-sans antialiased" style={{ backgroundColor: "#080908" }} suppressHydrationWarning>
         <ErrorBoundary>
           <Suspense fallback={null}>{children}</Suspense>
         </ErrorBoundary>

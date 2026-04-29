@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "@/lib/auth-client"
+import { isPaymentGatewayDisabled } from "@/lib/payment-gateway-flag"
 
 const STORAGE_KEY = "generation_count"
 const STORAGE_KEY_AUTH = "generation_count_auth"
@@ -113,6 +114,11 @@ export function useGenerationLimit() {
 
   // Fetch paid credits from API
   const fetchPaidCredits = useCallback(async () => {
+    if (isPaymentGatewayDisabled()) {
+      setPaidGenerations(999)
+      return
+    }
+
     if (!isAuthenticated || !userId) {
       setPaidGenerations(0)
       return
@@ -131,6 +137,12 @@ export function useGenerationLimit() {
 
   // Fetch remaining generations from server for unauthenticated users
   const fetchServerRemaining = useCallback(async () => {
+    if (isPaymentGatewayDisabled()) {
+      setServerRemaining(9999)
+      setRemaining(9999)
+      return
+    }
+
     if (isAuthenticated) {
       return // Authenticated users use different logic
     }
@@ -218,6 +230,15 @@ export function useGenerationLimit() {
 
   // Initialize remaining count and fetch paid credits
   useEffect(() => {
+    if (isPaymentGatewayDisabled()) {
+      setRemaining(9999)
+      setServerRemaining(9999)
+      setPaidGenerations(999)
+      setPaidGenerationsUsed(0)
+      setPaidUnitsUsed(0)
+      return
+    }
+
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData ? authData.count : 0
@@ -243,6 +264,8 @@ export function useGenerationLimit() {
 
   // Update remaining when paid credits are fetched
   useEffect(() => {
+    if (isPaymentGatewayDisabled()) return
+
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData ? authData.count : 0
@@ -258,6 +281,11 @@ export function useGenerationLimit() {
   // Decrement count optimistically (for UI updates) - full credit (2 units)
   const decrementOptimistic = useCallback(() => {
     setUsageLoading(true)
+
+    if (isPaymentGatewayDisabled()) {
+      setUsageLoading(false)
+      return
+    }
     
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
@@ -302,6 +330,11 @@ export function useGenerationLimit() {
   const decrementOptimisticPartial = useCallback(() => {
     setUsageLoading(true)
 
+    if (isPaymentGatewayDisabled()) {
+      setUsageLoading(false)
+      return
+    }
+
     if (isAuthenticated && userId) {
       const authData = loadAuthGenerationCount()
       const freeUsed = authData?.count || 0
@@ -333,7 +366,7 @@ export function useGenerationLimit() {
   }, [])
 
   // Check if user can generate
-  const canGenerate = remaining > 0
+  const canGenerate = isPaymentGatewayDisabled() || remaining > 0
 
   // Refresh paid credits (useful after payment)
   const refreshCredits = useCallback(async () => {

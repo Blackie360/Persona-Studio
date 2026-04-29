@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { getClientIp } from "@/lib/ip"
 import { getRemainingGenerations } from "@/lib/generation-logger"
+import { isPaymentGatewayDisabled } from "@/lib/payment-gateway-flag"
 
 export const dynamic = "force-dynamic"
 
@@ -14,6 +15,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: request.headers })
     const isAuthenticated = !!session?.user?.id
+
+    if (isPaymentGatewayDisabled()) {
+      return NextResponse.json<GenerationUsageResponse>({
+        remaining: 9999,
+        isAuthenticated,
+      })
+    }
 
     if (isAuthenticated) {
       return NextResponse.json<GenerationUsageResponse>({

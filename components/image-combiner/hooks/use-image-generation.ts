@@ -268,36 +268,56 @@ export function useImageGeneration({
       return "Image not found. Please re-upload the photo and try again."
     }
 
-    if (rawBody) {
+    const buildFromParsed = (errorData: Record<string, unknown>): string | null => {
+      const msg = errorData.message
+      if (typeof msg === "string" && msg.trim()) {
+        return msg.trim()
+      }
+      const errPart = typeof errorData.error === "string" ? errorData.error : ""
+      const detPart = typeof errorData.details === "string" ? errorData.details : ""
+      if (errPart || detPart) {
+        return `${errPart || "Request failed"}${detPart ? `: ${detPart}` : ""}`
+      }
       try {
-        const errorData = JSON.parse(rawBody)
-        // Prioritize message field, then details, then error
-        if (errorData?.message) {
-          return errorData.message
+        const serialized = JSON.stringify(errorData)
+        if (serialized !== "{}" && serialized !== "null") {
+          return serialized.slice(0, 1200)
         }
-        if (errorData?.error || errorData?.details) {
-          return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
+      } catch {
+        /* ignore */
+      }
+      return null
+    }
+
+    if (rawBody?.trim()) {
+      try {
+        const errorData = JSON.parse(rawBody) as Record<string, unknown>
+        const built = buildFromParsed(errorData)
+        if (built) return built
+        try {
+          const s = JSON.stringify(errorData)
+          if (s !== "{}" && s !== "null") {
+            return s.slice(0, 1200)
+          }
+        } catch {
+          /* ignore */
         }
-      } catch (error) {
-        if (rawBody.trim()) return rawBody
+        return rawBody.trim().slice(0, 1200)
+      } catch {
+        return rawBody.trim().slice(0, 1200)
       }
     }
 
     try {
-      const errorData = await response.json()
-      // Prioritize message field, then details, then error
-      if (errorData?.message) {
-        return errorData.message
-      }
-      if (errorData?.error || errorData?.details) {
-        return `${errorData.error ?? "Request failed"}${errorData.details ? `: ${errorData.details}` : ""}`
-      }
-    } catch (error) {
+      const errorData = (await response.json()) as Record<string, unknown>
+      const built = buildFromParsed(errorData)
+      if (built) return built
+    } catch {
       const text = await response.text().catch(() => "")
-      if (text) return text
+      if (text.trim()) return text.trim().slice(0, 1200)
     }
 
-    return `Request failed with status ${response.status} ${response.statusText}`.trim()
+    return `Request failed (${response.status} ${response.statusText || ""})`.trim()
   }
 
   const cancelGeneration = (generationId: string) => {
@@ -449,6 +469,27 @@ export function useImageGeneration({
             fetchServerRemaining()
           }
           onShowAuthModal()
+          return
+        }
+
+        const gatewayRestrictedFallback =
+          "Vercel AI Gateway free tier is temporarily limited. Add paid credits in your Vercel team (AI Gateway), then retry."
+
+        if (errorData?.error === "gateway_credit_restricted") {
+          clearInterval(progressInterval)
+          setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
+          onToast(errorData.message ?? gatewayRestrictedFallback, "error")
+          return
+        }
+
+        const legacyGatewayBlob = `${errorData?.details ?? ""}${errorData?.message ?? ""}`
+        if (
+          legacyGatewayBlob.includes("Free credits temporarily") ||
+          legacyGatewayBlob.includes("restricted access due to abuse")
+        ) {
+          clearInterval(progressInterval)
+          setGenerations((prev) => prev.filter((gen) => gen.id !== generationId))
+          onToast(gatewayRestrictedFallback, "error")
           return
         }
 

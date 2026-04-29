@@ -23,15 +23,14 @@ import { GenerationHistory } from "./generation-history"
 import { GlobalDropZone } from "./global-drop-zone"
 import { FullscreenViewer } from "./fullscreen-viewer"
 import { Skeleton } from "@/components/ui/skeleton"
+import { isPaymentGatewayDisabled } from "@/lib/payment-gateway-flag"
+import { cn } from "@/lib/utils"
 
-// Suppress React warnings for Dithering component's known limitation
-// The component internally spreads custom props (noiseScale, noiseOffset) to DOM elements
-// This happens at module load time to catch warnings during render
+// Suppress React dev noise for @paper-design/shaders-react Dithering: it forwards
+// shader props (noiseScale, noiseOffset) onto a DOM node. React may log via warn or error.
 if (typeof window !== "undefined") {
-  const originalError = console.error
-  console.error = (...args: unknown[]) => {
-    // Check if any argument contains the noiseScale/noiseOffset warning
-    const errorMessage = args
+  const messageFromArgs = (args: unknown[]) =>
+    args
       .map((arg) => {
         if (typeof arg === "string") return arg
         if (arg instanceof Error) return arg.message
@@ -42,22 +41,23 @@ if (typeof window !== "undefined") {
         }
       })
       .join(" ")
-    
-    // Suppress warnings about noiseScale and noiseOffset props
-    if (
-      errorMessage.includes("noiseScale") ||
-      errorMessage.includes("noiseOffset") ||
-      errorMessage.includes("noisescale") ||
-      errorMessage.includes("noiseoffset") ||
-      errorMessage.includes("React does not recognize") ||
-      errorMessage.includes("lowercase `noisescale`") ||
-      errorMessage.includes("lowercase `noiseoffset`")
-    ) {
-      // Suppress this specific warning from Dithering component
-      return
-    }
-    originalError(...args)
+
+  const isDitheringDomPropNoise = (msg: string) =>
+    (msg.includes("noiseScale") ||
+      msg.includes("noiseOffset") ||
+      msg.includes("noisescale") ||
+      msg.includes("noiseoffset") ||
+      msg.includes("lowercase `noisescale`") ||
+      msg.includes("lowercase `noiseoffset`")) &&
+    msg.includes("React does not recognize")
+
+  const patchConsole = (original: (...args: unknown[]) => void) => (...args: unknown[]) => {
+    if (isDitheringDomPropNoise(messageFromArgs(args))) return
+    original(...args)
   }
+
+  console.error = patchConsole(console.error.bind(console))
+  console.warn = patchConsole(console.warn.bind(console))
 }
 
 // Wrapper component to properly handle props and prevent DOM prop warnings
@@ -193,8 +193,8 @@ export function ImageCombiner() {
 
   const hasImages = useUrls ? !!image1Url : !!image1
   const canGenerate = hasImages && canGenerateFromLimit
-  // Partial regeneration is available for authenticated users with at least 0.5 credits remaining
-  const canUsePartialRegeneration = isAuthenticated && remaining >= 0.5
+  const canUsePartialRegeneration =
+    isAuthenticated && (isPaymentGatewayDisabled() || remaining >= 0.5)
 
   const {
     selectedGenerationId,
@@ -256,6 +256,8 @@ export function ImageCombiner() {
 
   // Show auth modal automatically when limit is reached and user tries to generate
   useEffect(() => {
+    if (isPaymentGatewayDisabled()) return
+
     if (hasImages && !canGenerateFromLimit && !isAuthenticated && !showAuthModal) {
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
@@ -268,6 +270,8 @@ export function ImageCombiner() {
 
   // Show payment modal when authenticated user exhausts free generations
   useEffect(() => {
+    if (isPaymentGatewayDisabled()) return
+
     if (
       hasImages &&
       !canGenerateFromLimit &&
@@ -419,7 +423,7 @@ export function ImageCombiner() {
     if (!generatedImage) return
     
     // Show loading feedback
-    showToast("Downloading image...", "success")
+    showToast("Downloading image…", "success")
     
     try {
       const response = await fetch(generatedImage.url)
@@ -440,7 +444,7 @@ export function ImageCombiner() {
       showToast("Image downloaded successfully!", "success")
     } catch (error) {
       console.error("Error downloading image:", error)
-      showToast("Failed to download image. Opening in new tab...", "error")
+      showToast("Failed to download image. Opening in new tab…", "error")
       // Fallback: open in new tab
       setTimeout(() => {
         window.open(generatedImage.url, "_blank")
@@ -558,7 +562,7 @@ export function ImageCombiner() {
         }
       }
 
-      setToast({ message: "Copying image...", type: "success" })
+      setToast({ message: "Copying image…", type: "success" })
       
       // Ensure document is focused before clipboard access
       // Focus the document body to ensure clipboard API has permission
@@ -895,24 +899,31 @@ export function ImageCombiner() {
     <>
       <div className="fixed inset-0 -z-10">
         <DitheringWrapper
-          color1={[0, 0, 0]}
-          color2={[0.05, 0.05, 0.1]}
-          color3={[0.02, 0.02, 0.05]}
-          color4={[0, 0, 0]}
-          speed={0.2}
-          noiseScale={0.003}
-          noiseOffset={0.2}
+          color1={[0.03, 0.035, 0.028]}
+          color2={[0.08, 0.09, 0.065]}
+          color3={[0.04, 0.09, 0.08]}
+          color4={[0.01, 0.012, 0.01]}
+          speed={0.12}
+          noiseScale={0.0024}
+          noiseOffset={0.14}
           style={{ width: "100%", height: "100%" }}
         />
       </div>
 
-      <div className="min-h-screen text-white">
-        <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8 max-w-[1920px] mx-auto">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus-ring fixed left-4 top-4 z-[100] rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+      >
+        Skip to Main Content
+      </a>
+
+      <div className="min-h-screen text-foreground">
+        <div className="safe-page mx-auto flex min-h-screen max-w-[1800px] flex-col gap-4 md:gap-5 lg:gap-6">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 md:mb-6 lg:mb-8">
-            <div className="flex items-center gap-2 sm:gap-4 flex-wrap w-full sm:w-auto">
+          <header className="studio-panel sticky top-3 z-40 flex flex-col gap-3 rounded-lg px-3 py-3 sm:flex-row sm:items-center sm:justify-between md:px-4">
+            <div className="flex min-w-0 items-center gap-3">
               <div
-                className={`relative flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 transition-opacity duration-300 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
+                className={`relative flex size-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/5 transition-opacity duration-300 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
               >
                 <img
                   src="/logo.jpg"
@@ -925,15 +936,26 @@ export function ImageCombiner() {
                 />
                 {!logoLoaded && <Skeleton className="absolute inset-0 w-full h-full bg-gray-700" />}
               </div>
-              <h1 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight">AI Avatar Studio</h1>
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--studio-cyan)]">
+                  Persona Studio
+                </p>
+                <h1 className="truncate text-xl font-bold leading-tight sm:text-2xl">AI Avatar Studio</h1>
+                <p className="hidden text-xs text-muted-foreground md:block">
+                  Turn one photo into a profile reveal people want to share.
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+            <nav className="flex w-full items-center justify-end gap-2 sm:w-auto" aria-label="Account and Help">
+              <div className="hidden rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-xs font-semibold text-[var(--accent)] lg:block">
+                Viral Mode Live
+              </div>
               <button
                 onClick={() => setShowPricingModal(true)}
-                className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                className="focus-ring min-h-10 rounded-md border border-white/10 px-3 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-[var(--studio-warm)]/60 hover:text-foreground"
               >
-                Pricing 💰
+                Pricing
               </button>
               {session?.user ? (
                 <UserProfileMenu onToast={showToast} />
@@ -944,25 +966,25 @@ export function ImageCombiner() {
                       setIsGeneralLogin(true)
                       setShowAuthModal(true)
                     }}
-                    className="text-xs sm:text-sm bg-white text-black hover:bg-gray-200 px-3 py-1.5 rounded-md font-medium transition-colors flex-shrink-0 cursor-pointer"
+                    className="focus-ring min-h-10 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-[var(--accent)]"
                   >
                     Login
                   </button>
                   <button
                     onClick={() => setShowHowItWorks(true)}
-                    className="text-xs sm:text-sm text-gray-400 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                    className="focus-ring min-h-10 rounded-md border border-white/10 px-3 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-white/25 hover:text-foreground"
                   >
                     How It Works
                   </button>
                 </>
               )}
-            </div>
-          </div>
+            </nav>
+          </header>
 
           {/* Mobile Layout */}
           {isMobile ? (
-            <div className="flex flex-col gap-4">
-              <div className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-3">
+            <div className="flex flex-col gap-4 pb-4">
+              <section className="studio-panel rounded-lg p-3" aria-label="Avatar controls">
                 <InputSection
                   prompt={prompt}
                   setPrompt={setPrompt}
@@ -1009,9 +1031,9 @@ export function ImageCombiner() {
                   setColorMood={setColorMood}
                   isLoading={isLoading}
                 />
-              </div>
+              </section>
 
-              <div className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-3">
+              <section className="studio-panel min-h-[360px] rounded-lg p-3" aria-label="Generated avatar preview">
                 <OutputSection
                   generatedImage={generatedImage}
                   isLoading={isLoading}
@@ -1029,7 +1051,7 @@ export function ImageCombiner() {
                   isAuthenticated={isAuthenticated}
                   canUsePartialRegeneration={canUsePartialRegeneration}
                 />
-              </div>
+              </section>
 
               <GenerationHistory
                 generations={persistedGenerations}
@@ -1046,10 +1068,10 @@ export function ImageCombiner() {
             </div>
           ) : (
             /* Desktop Layout */
-            <div className="flex flex-col gap-4 lg:gap-6">
-              <div ref={containerRef} className="flex gap-4 lg:gap-6 min-h-[60vh] lg:min-h-[70vh]">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 lg:gap-5">
+              <div ref={containerRef} className="flex min-h-[64vh] gap-4 lg:min-h-[72vh] lg:gap-5">
                 <div
-                  className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-4 lg:p-6 overflow-y-auto"
+                  className="studio-panel min-w-[360px] overflow-y-auto rounded-lg p-4 lg:p-5"
                   style={{ width: `${leftWidth}%` }}
                 >
                   <InputSection
@@ -1102,16 +1124,19 @@ export function ImageCombiner() {
 
                 {/* Resizable Divider */}
                 <div
-                  className="w-1 flex-shrink-0 cursor-col-resize hover:bg-white/20 active:bg-white/30 transition-colors group relative"
+                  className="group relative w-2 flex-shrink-0 cursor-col-resize rounded-full transition-colors duration-200 hover:bg-white/10 active:bg-white/15"
                   onMouseDown={handleMouseDown}
                   onDoubleClick={handleDoubleClick}
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize editor and preview panels"
                 >
                   <div className="absolute inset-y-0 -left-2 -right-2" />
-                  <div className="h-full w-full bg-gray-700/50 group-hover:bg-white/20" />
+                  <div className="mx-auto h-full w-px bg-white/15 group-hover:bg-[var(--accent)]/70" />
                 </div>
 
                 <div
-                  className="bg-black/40 border border-gray-700/50 backdrop-blur-sm p-4 lg:p-6 flex flex-col"
+                  className="studio-panel flex min-w-[420px] flex-col rounded-lg p-4 lg:p-5"
                   style={{ width: `${100 - leftWidth}%` }}
                 >
                   <OutputSection
@@ -1158,6 +1183,23 @@ export function ImageCombiner() {
         onDrop={handleGlobalDrop}
         singleSlot={true}
       />
+
+      <div className="sr-only" role={toast?.type === "error" ? "alert" : "status"} aria-live="polite" aria-atomic="true">
+        {toast?.message ?? ""}
+      </div>
+
+      {toast && (
+        <div
+          className={cn(
+            "fixed bottom-4 left-1/2 z-[70] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md border px-4 py-3 text-sm shadow-lg backdrop-blur-md",
+            toast.type === "error"
+              ? "border-red-500/40 bg-red-950/90 text-red-100"
+              : "border-white/15 bg-card/95 text-card-foreground",
+          )}
+        >
+          {toast.message}
+        </div>
+      )}
 
       <FullscreenViewer
         isOpen={showFullscreen}

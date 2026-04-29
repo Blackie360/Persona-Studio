@@ -18,7 +18,7 @@ const slides = [
       <div className="space-y-4">
         <div className="text-center mb-6">
           <div className="w-16 h-16 mx-auto mb-4 bg-accent/20 border border-accent/40 rounded-lg flex items-center justify-center">
-            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
@@ -40,7 +40,7 @@ const slides = [
       <div className="space-y-4">
         <div className="text-center mb-6">
           <div className="w-16 h-16 mx-auto mb-4 bg-accent/20 border border-accent/40 rounded-lg flex items-center justify-center">
-            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
           </div>
@@ -62,7 +62,7 @@ const slides = [
       <div className="space-y-4">
         <div className="text-center mb-6">
           <div className="w-16 h-16 mx-auto mb-4 bg-accent/20 border border-accent/40 rounded-lg flex items-center justify-center">
-            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
@@ -119,7 +119,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] bg-background border border-border text-foreground flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-2xl font-bold text-center">How it works</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-center">How It Works</DialogTitle>
           <DialogDescription className="sr-only">
             Learn how to use the AI Avatar Studio in 3 simple steps
           </DialogDescription>
@@ -150,44 +150,48 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
           {/* Navigation Buttons */}
           <div className="flex items-center justify-between mt-6 pt-6 border-t border-border flex-shrink-0">
             <Button
+              type="button"
               onClick={prevSlide}
               disabled={currentSlide === 0}
               variant="outline"
               size="sm"
-              className="bg-transparent border-border text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="focus-ring bg-transparent border-border text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4 mr-1" />
+              <ChevronLeft className="w-4 h-4 mr-1" aria-hidden="true" />
               Previous
             </Button>
 
             {/* Slide Indicators */}
-            <div className="flex gap-2">
+            <div className="flex gap-2" aria-label="How it works slides">
               {slides.map((_, index) => (
                 <button
+                  type="button"
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`focus-ring h-3 rounded-full transition-[background-color,width] ${
                     index === currentSlide ? "bg-foreground w-8" : "bg-border hover:bg-accent"
                   }`}
+                  aria-current={index === currentSlide ? "step" : undefined}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
             </div>
 
             <Button
+              type="button"
               onClick={nextSlide}
               disabled={currentSlide === slides.length - 1}
               variant="outline"
               size="sm"
-              className="bg-transparent border-border text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="focus-ring bg-transparent border-border text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
-              <ChevronRight className="w-4 h-4 ml-1" />
+              <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" />
             </Button>
           </div>
 
           {/* Slide Counter */}
-          <div className="text-center mt-4 text-sm text-muted-foreground">
+          <div className="text-center mt-4 text-sm text-muted-foreground" aria-live="polite">
             {currentSlide + 1} of {slides.length}
           </div>
         </div>

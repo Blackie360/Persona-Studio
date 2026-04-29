@@ -5,31 +5,36 @@
 
 /* Dark-only app — all theme values defined on :root */
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #000000;
-  --card-foreground: #ffffff;
-  --popover: #000000;
-  --popover-foreground: #ffffff;
+  --background: #080908;
+  --foreground: #f7f4ea;
+  --card: #11130f;
+  --card-foreground: #f7f4ea;
+  --popover: #11130f;
+  --popover-foreground: #f7f4ea;
   --primary: #ffffff;
   --primary-foreground: #000000;
-  --secondary: #111111;
-  --secondary-foreground: #ffffff;
-  --muted: #0a0a0a;
-  --muted-foreground: #999999;
-  --accent: #1a1a1a;
-  --accent-foreground: #ffffff;
+  --secondary: #191b16;
+  --secondary-foreground: #f7f4ea;
+  --muted: #151713;
+  --muted-foreground: #a9aa9f;
+  --accent: #c7ff6b;
+  --accent-foreground: #10120d;
+  --studio-warm: #ffb86b;
+  --studio-cyan: #74f7d5;
+  --studio-panel: rgba(17, 19, 15, 0.84);
+  --studio-panel-strong: rgba(22, 25, 20, 0.94);
+  --studio-border: rgba(247, 244, 234, 0.14);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: #333333;
-  --input: #000000;
-  --ring: #ffffff;
+  --border: rgba(247, 244, 234, 0.16);
+  --input: #11130f;
+  --ring: #c7ff6b;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --radius: 0rem;
+  --radius: 0.5rem;
   --sidebar: #0a0a0a;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -88,19 +93,30 @@
   }
 
   html {
-    background-color: #000000 !important;
+    background-color: #080908 !important;
+    color-scheme: dark;
     font-family: var(--font-sans-serif), sans-serif;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground;
-    background-color: #000000 !important;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(199, 255, 107, 0.08), transparent 28rem),
+      radial-gradient(circle at 90% 12%, rgba(116, 247, 213, 0.07), transparent 30rem),
+      #080908 !important;
     font-family: var(--font-sans-serif), sans-serif;
+    min-width: 320px;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: rgba(199, 255, 107, 0.18);
+    text-rendering: geometricPrecision;
   }
 
   /* Apply serif font to headings and specific elements */
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif), serif;
+    text-wrap: balance;
   }
 
   /* Apply monospace font to code and specific elements */
@@ -131,9 +147,47 @@
     transform: translateZ(0);
     will-change: transform, opacity;
   }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  textarea,
+  [data-slot="select-trigger"] {
+    touch-action: manipulation;
+  }
+
+  ::selection {
+    background: rgba(199, 255, 107, 0.28);
+    color: #ffffff;
+  }
 }
 
 @layer utilities {
+  .studio-panel {
+    border: 1px solid var(--studio-border);
+    background: linear-gradient(180deg, var(--studio-panel-strong), var(--studio-panel));
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(16px);
+  }
+
+  .studio-panel-soft {
+    border: 1px solid var(--studio-border);
+    background: rgba(17, 19, 15, 0.7);
+    backdrop-filter: blur(14px);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .safe-page {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
   .prevent-shift {
     min-height: 100vh;
     position: relative;
@@ -155,5 +209,16 @@
 
   .font-monospace {
     font-family: var(--font-monospace), monospace;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }

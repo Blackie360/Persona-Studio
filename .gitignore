@@ -26,3 +26,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 drizzle/
+assets/videos/persona-studio-launch-vertical.mp4
+assets/videos/previews/persona-studio-launch-contact-sheet.jpg

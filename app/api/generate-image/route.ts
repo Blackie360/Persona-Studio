@@ -1,8 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
+import { generateImage, generateText } from "ai"
 import { logGenerationStart, logGenerationComplete, hasReachedLimit } from "@/lib/generation-logger"
 import { auth } from "@/lib/auth"
 import { getClientIp } from "@/lib/ip"
+import { isAiGatewayCreditRestriction } from "@/lib/ai-gateway-errors"
+import { serializeCaughtError } from "@/lib/serialize-caught-error"
+import {
+  gatewayImageAspectRatio,
+  getAiGatewayImageModel,
+  usesAiSdkGenerateImage,
+} from "@/lib/ai-gateway-image-model"
+import { recoverGatewayImagesFromValidationError } from "@/lib/recover-gateway-image-result"
+import { isPaymentGatewayDisabled } from "@/lib/payment-gateway-flag"
 
 export const dynamic = "force-dynamic"
 
@@ -17,9 +26,59 @@ interface GenerateImageResponse {
 }
 
 interface ErrorResponse {
+  /** Stable code for clients (e.g. gateway_credit_restricted) */
   error: string
   message?: string
   details?: string
+}
+
+function gatewayUsageOptions(userId: string | null) {
+  return {
+    gateway: {
+      ...(userId ? { user: userId } : {}),
+      tags: ["persona-studio:avatar"],
+    },
+  }
+}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    typeof (value as { then?: unknown }).then === "function"
+  )
+}
+
+async function resolveCaughtError(error: unknown): Promise<unknown> {
+  if (!isThenable(error)) return error
+
+  try {
+    return await error
+  } catch (resolvedError) {
+    return resolvedError
+  }
+}
+
+/** Gateway sometimes returns valid images while `warnings[]` fails AI SDK Zod validation — recover pixels from the thrown error tree. */
+async function generateImageOrRecover(options: Parameters<typeof generateImage>[0]) {
+  try {
+    return await generateImage(options)
+  } catch (error) {
+    const resolvedError = await resolveCaughtError(error)
+    const recovered =
+      recoverGatewayImagesFromValidationError(resolvedError) ??
+      recoverGatewayImagesFromValidationError(error)
+    if (!recovered?.length) throw resolvedError
+    console.warn(
+      "[generate-image] Gateway returned images but AI SDK rejected the response (warnings schema). Using recovered pixels.",
+    )
+    const images = recovered.map((img) => ({
+      base64: img.base64,
+      mediaType: img.mediaType,
+      uint8Array: Buffer.from(img.base64, "base64"),
+    }))
+    return { images }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -57,7 +116,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const model = "google/gemini-3-pro-image-preview"
+    const model = getAiGatewayImageModel()
 
     // Insert a "loading" row first to reserve a slot, then check the limit.
     // This prevents concurrent requests from all passing the check before
@@ -77,7 +136,7 @@ export async function POST(request: NextRequest) {
     // Enforce free generation limit for unauthenticated users.
     // The count now includes this request's "loading" row, so concurrent
     // requests will see it and be correctly rejected.
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isPaymentGatewayDisabled()) {
       const reachedLimit = await hasReachedLimit(ipAddress)
       if (reachedLimit) {
         // Mark the reserved row as an error so it doesn't permanently
@@ -97,10 +156,41 @@ export async function POST(request: NextRequest) {
 
     if (mode === "text-to-image") {
       const imageGenerationPrompt = `Generate an image: ${prompt}`
+      const aspect = gatewayImageAspectRatio(aspectRatio)
+
+      if (usesAiSdkGenerateImage(model)) {
+        const imgResult = await generateImageOrRecover({
+          model,
+          prompt: imageGenerationPrompt,
+          aspectRatio: aspect,
+          providerOptions: gatewayUsageOptions(userId),
+        })
+
+        const firstImage = imgResult.images[0]
+        if (!firstImage) {
+          return NextResponse.json<ErrorResponse>(
+            { error: "No image generated", details: "The model did not return any images" },
+            { status: 500 },
+          )
+        }
+
+        const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
+
+        if (logId) {
+          await logGenerationComplete(logId, imageUrl, "complete")
+        }
+
+        return NextResponse.json<GenerateImageResponse>({
+          url: imageUrl,
+          prompt: prompt,
+          description: "",
+        })
+      }
 
       const result = await generateText({
         model,
         prompt: imageGenerationPrompt,
+        providerOptions: gatewayUsageOptions(userId),
       })
 
       const imageFiles = result.files?.filter((f) => f.mediaType?.startsWith("image/")) || []
@@ -241,6 +331,55 @@ export async function POST(request: NextRequest) {
       const image1Data = await convertToBase64(image1 || image1Url)
       const image2Data = hasImage2 ? await convertToBase64(image2 || image2Url) : null
 
+      const editingPrompt = hasImage2
+        ? `${prompt}. Combine these two images creatively while following the instructions. Generate a new image.`
+        : `${prompt}. Edit or transform this image based on the instructions. Generate a new image.`
+
+      const aspect = gatewayImageAspectRatio(aspectRatio)
+
+      if (usesAiSdkGenerateImage(model)) {
+        const dataUrl = (d: { base64: string; mediaType: string }) =>
+          `data:${d.mediaType};base64,${d.base64}`
+
+        const promptPayload =
+          image2Data !== null
+            ? {
+                images: [dataUrl(image1Data), dataUrl(image2Data)],
+                text: editingPrompt,
+              }
+            : {
+                images: [dataUrl(image1Data)],
+                text: editingPrompt,
+              }
+
+        const imgResult = await generateImageOrRecover({
+          model,
+          prompt: promptPayload,
+          aspectRatio: aspect,
+          providerOptions: gatewayUsageOptions(userId),
+        })
+
+        const firstImage = imgResult.images[0]
+        if (!firstImage) {
+          return NextResponse.json<ErrorResponse>(
+            { error: "No image generated", details: "The model did not return any images" },
+            { status: 500 },
+          )
+        }
+
+        const imageUrl = `data:${firstImage.mediaType};base64,${firstImage.base64}`
+
+        if (logId) {
+          await logGenerationComplete(logId, imageUrl, "complete")
+        }
+
+        return NextResponse.json<GenerateImageResponse>({
+          url: imageUrl,
+          prompt: editingPrompt,
+          description: "",
+        })
+      }
+
       const contentParts: Array<{ type: "text"; text: string } | { type: "image"; image: string; mimeType: string }> =
         []
 
@@ -258,10 +397,6 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      const editingPrompt = hasImage2
-        ? `${prompt}. Combine these two images creatively while following the instructions. Generate a new image.`
-        : `${prompt}. Edit or transform this image based on the instructions. Generate a new image.`
-
       contentParts.push({ type: "text", text: editingPrompt })
 
       const result = await generateText({
@@ -272,6 +407,7 @@ export async function POST(request: NextRequest) {
             content: contentParts,
           },
         ],
+        providerOptions: gatewayUsageOptions(userId),
       })
 
       const imageFiles = result.files?.filter((f) => f.mediaType?.startsWith("image/")) || []
@@ -303,18 +439,32 @@ export async function POST(request: NextRequest) {
       )
     }
   } catch (error) {
-    console.error("Error in generate-image route:", error)
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-
-    // Log generation error
     if (logId) {
       await logGenerationComplete(logId, null, "error")
     }
 
+    const resolvedError = await resolveCaughtError(error)
+
+    if (isAiGatewayCreditRestriction(resolvedError)) {
+      console.warn(
+        "[generate-image] AI Gateway declined request (free tier / credits). Client receives 503 gateway_credit_restricted.",
+      )
+      return NextResponse.json<ErrorResponse>(
+        {
+          error: "gateway_credit_restricted",
+          message:
+            "Vercel AI Gateway has temporarily limited free-tier usage. Add paid AI Gateway credits in your Vercel team, then try again.",
+        },
+        { status: 503 },
+      )
+    }
+
+    console.error("Error in generate-image route:", resolvedError)
+
     return NextResponse.json<ErrorResponse>(
       {
         error: "Failed to generate image",
-        details: errorMessage,
+        details: serializeCaughtError(resolvedError),
       },
       { status: 500 },
     )

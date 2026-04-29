@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useMobile } from "@/hooks/use-mobile"
-import type { Generation } from "./hooks/use-image-generation"
+import type { Generation } from "./types"
+import { Check, Copy, Download, ImagePlus, RefreshCw } from "lucide-react"
 
 interface OutputSectionProps {
   generatedImage: { url: string; prompt: string } | null
@@ -30,7 +31,7 @@ interface OutputSectionProps {
 function ShimmerSkeleton() {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <div className="relative w-full h-full max-w-md max-h-md m-8 overflow-hidden rounded-lg bg-muted/50">
+      <div className="relative m-4 aspect-square w-full max-w-md overflow-hidden rounded-lg border border-white/10 bg-muted/50 sm:m-8">
         {/* Base skeleton */}
         <div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-background/50" />
 
@@ -84,7 +85,7 @@ function ShimmerSkeleton() {
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
           >
-            Generating your avatar...
+            Generating your avatar…
           </motion.p>
         </div>
       </div>
@@ -171,10 +172,10 @@ export function OutputSection({
           variant="outline"
           size="sm"
           className={cn(
-            "text-xs h-7 px-2 md:px-3 bg-transparent border-border text-foreground",
+            "focus-ring min-h-10 rounded-md border-white/10 bg-black/35 px-3 text-xs text-foreground md:px-3",
             "flex items-center gap-1 lg:bg-background/80 lg:backdrop-blur-sm",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            "transition-all duration-200",
+            "transition-[background-color,border-color,color,box-shadow,transform] duration-200",
             !disabled && !isLoading && [
               "hover:bg-accent/80 hover:border-accent",
               "hover:shadow-[0_2px_12px_rgba(255,255,255,0.15)]",
@@ -299,21 +300,16 @@ export function OutputSection({
         isLoading={buttonStates.loadAsInput.loading}
         icon={
           buttonStates.loadAsInput.success ? (
-            <motion.svg
-              className="w-3 h-3 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <motion.span
+              className="text-[var(--studio-cyan)]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </motion.svg>
+              <Check className="size-3" aria-hidden="true" />
+            </motion.span>
           ) : (
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ImagePlus className="size-3" aria-hidden="true" />
           )
         }
         label="Use as Input"
@@ -325,9 +321,7 @@ export function OutputSection({
         tooltip={isAuthenticated ? "Change background & lighting only - Save 50% credits!" : "Sign in to use this feature"}
         isLoading={isPartialRegenerationLoading}
         icon={
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <RefreshCw className="size-3" aria-hidden="true" />
         }
         label="Partial Regen"
       />
@@ -339,22 +333,16 @@ export function OutputSection({
         isLoading={buttonStates.copy.loading}
         icon={
           buttonStates.copy.success ? (
-            <motion.svg
-              className="w-3 h-3 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <motion.span
+              className="text-[var(--studio-cyan)]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </motion.svg>
+              <Check className="size-3" aria-hidden="true" />
+            </motion.span>
           ) : (
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" strokeWidth="2" />
-              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" strokeWidth="2" />
-            </svg>
+            <Copy className="size-3" aria-hidden="true" />
           )
         }
         label="Copy"
@@ -367,26 +355,16 @@ export function OutputSection({
         isLoading={buttonStates.download.loading}
         icon={
           buttonStates.download.success ? (
-            <motion.svg
-              className="w-3 h-3 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <motion.span
+              className="text-[var(--studio-cyan)]"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </motion.svg>
+              <Check className="size-3" aria-hidden="true" />
+            </motion.span>
           ) : (
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
+            <Download className="size-3" aria-hidden="true" />
           )
         }
         label="Download"
@@ -395,8 +373,8 @@ export function OutputSection({
   )
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full min-h-0 select-none relative group/output">
-      <div className="relative flex-1 min-h-0 flex flex-col">
+    <div ref={containerRef} className="group/output relative flex h-full min-h-[320px] flex-col select-none">
+      <div className="relative flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-lg border border-white/10 bg-black/25">
         <AnimatePresence mode="wait">
           {isLoading ? (
             <motion.div
@@ -417,22 +395,22 @@ export function OutputSection({
               exit={{ opacity: 0, scale: 1.02 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
             >
-              <div className="flex-1 flex items-center justify-center relative group max-w-full max-h-full overflow-hidden">
+              <div className="group relative flex max-h-full max-w-full flex-1 items-center justify-center overflow-hidden">
                 {/* Hover overlay hint */}
-                <div className="absolute inset-0 bg-background/0 group-hover:bg-background/5 transition-colors duration-200 rounded-lg pointer-events-none z-10 flex items-center justify-center">
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/0 transition-colors duration-200 group-hover:bg-background/5">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     whileHover={{ opacity: 1, y: 0 }}
-                    className="bg-background/90 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 text-xs text-muted-foreground pointer-events-none hidden group-hover:block"
+                    className="pointer-events-none hidden rounded-md border border-white/10 bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-lg backdrop-blur-sm group-hover:block"
                   >
-                    Click to view fullscreen
+                    Click to View Fullscreen
                   </motion.div>
                 </div>
                 <motion.img
                   src={generatedImage.url}
                   alt="Generated avatar image"
                   className={cn(
-                    "max-w-full max-h-full cursor-pointer transition-transform duration-200",
+                    "max-h-full max-w-full cursor-pointer transition-transform duration-200",
                     "lg:w-full lg:h-full lg:object-contain",
                     "group-hover:scale-[1.02] group-hover:shadow-2xl"
                   )}
@@ -454,25 +432,29 @@ export function OutputSection({
             // Empty state
             <motion.div
               key="empty"
-              className="absolute inset-0 flex items-center justify-center text-center py-6 select-none bg-background/20"
+              className="absolute inset-0 flex items-center justify-center bg-background/20 px-6 py-8 text-center select-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <div>
-                <div className="w-8 h-8 md:w-16 md:h-16 mx-auto mb-3 border border-border flex items-center justify-center bg-background/50">
+              <div className="max-w-xs">
+                <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-lg border border-white/10 bg-background/50 md:size-16">
                   <svg
-                    className="w-4 h-4 md:w-8 md:h-8 text-muted-foreground"
+                    className="size-7 text-muted-foreground md:size-8"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <polyline points="21,15 16,10 5,21" />
                   </svg>
                 </div>
-                <p className="text-xs text-muted-foreground font-medium py-1 md:py-2">Ready to generate</p>
+                <p className="py-1 text-sm font-semibold text-foreground md:py-2">Your Reveal Stage Is Ready</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Drop in a photo, pick a viral direction, then generate a profile image built to stop the scroll.
+                </p>
               </div>
             </motion.div>
           )}
@@ -487,7 +469,7 @@ export function OutputSection({
             transition={{ duration: 0.3, delay: 0.2 }}
           >
             <div className="pointer-events-auto">
-              {renderButtons("flex justify-center gap-2 transition-all duration-200")}
+              {renderButtons("flex justify-center gap-2 transition-[opacity,transform] duration-200")}
             </div>
           </motion.div>
         )}
@@ -500,8 +482,14 @@ export function OutputSection({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          {renderButtons("mt-3 md:mt-4 flex lg:hidden justify-center gap-2 flex-shrink-0")}
+          {renderButtons("mt-3 grid grid-cols-2 gap-2 md:mt-4 sm:flex sm:justify-center lg:hidden flex-shrink-0")}
         </motion.div>
+      )}
+
+      {generatedImage && (
+        <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
+          Tip: copy or download, then post the before/after with the style name for a stronger share hook.
+        </p>
       )}
     </div>
   )

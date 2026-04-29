@@ -65,18 +65,20 @@ export function PaymentModal({ isOpen, onClose, onSuccess }: PaymentModalProps) 
         
         <div className="flex flex-col gap-4 mt-4">
           {error && (
-            <div className="bg-red-900/20 border border-red-700 text-red-400 p-3 rounded text-sm">
+            <div className="bg-red-900/20 border border-red-700 text-red-400 p-3 rounded text-sm" role="alert">
               {error}
             </div>
           )}
 
           <div className="flex flex-col gap-2">
             <Button
+              type="button"
               onClick={handlePay}
               disabled={isLoading}
-              className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
+              className="focus-ring w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
+              aria-busy={isLoading}
             >
-              {isLoading ? "Redirecting to checkout..." : "Pay via M-Pesa"}
+              {isLoading ? "Redirecting to Checkout…" : "Pay via M-Pesa"}
             </Button>
             <p className="text-xs text-gray-500 text-center">
               You'll be redirected to the checkout page to complete your M-Pesa payment

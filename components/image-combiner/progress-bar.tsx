@@ -14,6 +14,11 @@ export function ProgressBar({ progress, onCancel, isConverting = false }: Progre
       <div className="w-full max-w-md">
         <div
           className="relative h-4 md:h-8 bg-black/50 border border-gray-600 overflow-hidden mb-4"
+          role="progressbar"
+          aria-label={isConverting ? "Converting HEIC image" : "Generation progress"}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
           style={{ zIndex: 30 }}
         >
           <div
@@ -28,7 +33,7 @@ export function ProgressBar({ progress, onCancel, isConverting = false }: Progre
           />
 
           <div
-            className="absolute top-0 left-0 h-full transition-all duration-100 ease-out"
+            className="absolute top-0 left-0 h-full transition-[width] duration-100 ease-out"
             style={{
               width: `${progress}%`,
               backgroundImage: `
@@ -59,15 +64,16 @@ export function ProgressBar({ progress, onCancel, isConverting = false }: Progre
         </div>
 
         <div className="text-center space-y-2">
-          <p className="text-xs md:text-sm font-medium text-white animate-pulse">
-            {isConverting ? "Converting HEIC image..." : "Running..."}
+          <p className="text-xs md:text-sm font-medium text-white animate-pulse" role="status" aria-live="polite">
+            {isConverting ? "Converting HEIC Image…" : "Running…"}
           </p>
           {!isConverting && (
             <Button
+              type="button"
               onClick={onCancel}
               variant="outline"
               size="sm"
-              className="text-xs h-7 px-3 bg-transparent border-gray-600 text-white hover:bg-gray-700"
+              className="focus-ring text-xs min-h-9 px-3 bg-transparent border-gray-600 text-white hover:bg-gray-700"
             >
               Cancel
             </Button>

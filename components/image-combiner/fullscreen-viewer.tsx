@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import type React from "react"
+
+import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
 interface FullscreenViewerProps {
@@ -12,6 +14,7 @@ interface FullscreenViewerProps {
 export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewerProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   // Reset states when image URL changes
   useEffect(() => {
@@ -39,6 +42,7 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
+      window.setTimeout(() => closeButtonRef.current?.focus(), 0)
     } else {
       document.body.style.overflow = "unset"
     }
@@ -79,18 +83,19 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
         >
           {/* Close Button - More visible and accessible */}
           <motion.button
-            onClick={(e) => {
+            ref={closeButtonRef}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation()
               onClose()
             }}
-            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 bg-background/90 hover:bg-background border border-border text-foreground p-2 sm:p-2.5 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+            className="focus-ring absolute top-2 right-2 sm:top-4 sm:right-4 z-20 bg-background/90 hover:bg-background border border-border text-foreground p-2 sm:p-2.5 rounded-lg transition-[background-color,box-shadow,opacity,transform] duration-200 shadow-lg hover:shadow-xl"
             title="Close (ESC)"
             aria-label="Close fullscreen view"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </motion.button>
@@ -106,10 +111,10 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
           >
             {/* Loading State */}
             {!imageLoaded && !imageError && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center" role="status" aria-live="polite">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 border-2 border-border border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-muted-foreground">Loading image...</p>
+                  <div className="w-8 h-8 border-2 border-border border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                  <p className="text-sm text-muted-foreground">Loading Image…</p>
                 </div>
               </div>
             )}
@@ -120,14 +125,15 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
                 <div className="text-center">
                   <p className="text-muted-foreground mb-2">Failed to load image</p>
                   <button
-                    onClick={(e) => {
+                    type="button"
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                       e.stopPropagation()
                       setImageError(false)
                       setImageLoaded(false)
                     }}
-                    className="text-sm text-primary hover:underline"
+                    className="focus-ring rounded text-sm text-primary hover:underline"
                   >
-                    Try again
+                    Try Again
                   </button>
                 </div>
               </div>
@@ -144,7 +150,7 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
                 width: "auto",
                 height: "auto",
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e: React.MouseEvent<HTMLImageElement>) => e.stopPropagation()}
               onLoad={() => setImageLoaded(true)}
               onError={() => {
                 setImageError(true)
@@ -167,7 +173,7 @@ export function FullscreenViewer({ isOpen, imageUrl, onClose }: FullscreenViewer
                 transition={{ delay: 0.3 }}
                 className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 bg-background/80 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 text-xs text-muted-foreground pointer-events-none hidden sm:block"
               >
-                Click outside or press ESC to close
+                Click outside or press ESC to close.
               </motion.div>
             )}
           </div>

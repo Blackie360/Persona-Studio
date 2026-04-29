@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main" className="min-h-screen bg-background">
       <ImageCombiner />
     </main>
   )

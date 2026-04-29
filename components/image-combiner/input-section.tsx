@@ -4,13 +4,14 @@ import type React from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trash2, Briefcase, Linkedin, Sparkles, Zap, Tv, Smile, Film } from "lucide-react"
+import { Trash2, Briefcase, Linkedin, Sparkles, Zap, Tv, Smile, Film, X } from "lucide-react"
 import { ImageUploadBox } from "./image-upload-box"
 import { cn } from "@/lib/utils"
 import { AVATAR_STYLES, BACKGROUND_OPTIONS, COLOR_MOOD_OPTIONS } from "./constants"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const btnClassName = "w-full h-10 md:h-12 text-sm md:base font-semibold bg-white text-black hover:bg-gray-200"
+const btnClassName =
+  "w-full min-h-12 rounded-md text-sm md:text-base font-semibold bg-primary text-primary-foreground hover:bg-[var(--accent)] focus-ring"
 
 interface InputSectionProps {
   prompt: string
@@ -79,6 +80,37 @@ const styleGlowColors: Record<string, string> = {
   "family-guy": "shadow-[0_0_15px_rgba(255,87,34,0.5)]",
 }
 
+const viralPresets = [
+  {
+    label: "Founder Glow",
+    style: "linkedin",
+    mood: "warm",
+    background: "gradient-soft",
+    prompt: "Make this look like a confident founder profile photo with premium studio lighting and a magnetic smile.",
+  },
+  {
+    label: "Anime Reveal",
+    style: "anime",
+    mood: "vibrant",
+    background: "gradient-soft",
+    prompt: "Turn this into a crisp anime profile reveal with expressive eyes, clean linework, and a share-worthy poster feel.",
+  },
+  {
+    label: "Cyber Recruiter",
+    style: "cyberpunk",
+    mood: "high-contrast",
+    background: "studio-neutral",
+    prompt: "Create a cinematic cyberpunk portrait with controlled neon edge light, sharp confidence, and viral profile energy.",
+  },
+  {
+    label: "Old Money",
+    style: "vintage",
+    mood: "muted",
+    background: "studio-light",
+    prompt: "Create a refined vintage editorial portrait with timeless styling, soft film tones, and understated luxury.",
+  },
+]
+
 export function InputSection({
   prompt,
   setPrompt,
@@ -112,36 +144,74 @@ export function InputSection({
   setColorMood,
   isLoading,
 }: InputSectionProps) {
+  const applyPreset = (preset: (typeof viralPresets)[number]) => {
+    setAvatarStyle(preset.style)
+    setColorMood(preset.mood)
+    setBackground(preset.background)
+    setPrompt(preset.prompt)
+    window.setTimeout(() => promptTextareaRef.current?.focus(), 0)
+  }
+
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="space-y-3 md:space-y-4 min-h-0 flex flex-col">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-col gap-4 md:gap-5">
+        <section className="rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/8 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--studio-cyan)]">
+                Viral Mode
+              </p>
+              <h2 className="truncate text-sm font-semibold text-foreground md:text-base">Pick a Feed-Ready Direction</h2>
+            </div>
+            <span className="hidden rounded-full border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:inline">
+              1 tap
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {viralPresets.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="focus-ring min-h-11 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-left text-xs font-semibold text-foreground transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:bg-white/10"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Photo Upload Section */}
         <motion.div
-          className="space-y-2 md:space-y-3"
+          className="space-y-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
         >
-          <div className="flex items-center justify-between mb-2 select-none">
+          <div className="flex items-start justify-between gap-3 select-none">
             <div className="flex flex-col gap-1">
-              <label className="text-sm md:text-base font-medium text-gray-300">Upload Your Photo</label>
-              <span className="text-xs text-gray-500">Upload a clear photo of your face</span>
+              <label className="text-sm font-semibold text-foreground md:text-base">Upload Your Photo</label>
+              <span className="text-xs text-muted-foreground">Use a clear face photo for stronger results.</span>
             </div>
-            <div className="inline-flex bg-black/50 border border-gray-600">
+            <div className="inline-flex min-h-10 rounded-md border border-white/10 bg-black/30 p-1" role="group" aria-label="Image source">
               <button
+                type="button"
                 onClick={() => setUseUrls(false)}
+                aria-pressed={!useUrls}
                 className={cn(
-                  "px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all",
-                  !useUrls ? "bg-white text-black" : "text-gray-300 hover:text-white",
+                  "focus-ring rounded px-3 text-xs font-semibold transition-[background-color,color] duration-200 md:text-sm",
+                  !useUrls ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 File
               </button>
               <button
+                type="button"
                 onClick={() => setUseUrls(true)}
+                aria-pressed={useUrls}
                 className={cn(
-                  "px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all",
-                  useUrls ? "bg-white text-black" : "text-gray-300 hover:text-white",
+                  "focus-ring rounded px-3 text-xs font-semibold transition-[background-color,color] duration-200 md:text-sm",
+                  useUrls ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 URL
@@ -152,21 +222,25 @@ export function InputSection({
           {useUrls ? (
             <div className="relative">
               <input
+                id="image-url"
+                name="image-url"
                 type="url"
+                inputMode="url"
+                autoComplete="off"
+                aria-label="Image URL"
                 value={image1Url}
                 onChange={(e) => onUrlChange(e.target.value, 1)}
-                placeholder="Paste image URL here..."
-                className="w-full p-2 md:p-3 pr-8 bg-black/50 border border-gray-600 text-white text-xs focus:outline-none focus:ring-2 focus:ring-white select-text"
+                placeholder="Paste image URL here…"
+                className="focus-ring w-full min-h-12 rounded-md border border-white/10 bg-black/35 p-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground select-text"
               />
               {image1Url && (
                 <button
+                  type="button"
                   onClick={() => onClearImage(1)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="focus-ring absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors duration-200 hover:bg-white/10 hover:text-foreground"
+                  aria-label="Clear image URL"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X className="size-4" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -217,17 +291,19 @@ export function InputSection({
 
         {/* Style Selection - Add staggered entrance + selection animations */}
         <motion.div
-          className="space-y-2"
+          className="space-y-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <label className="text-sm md:text-base font-medium text-gray-300 select-none">Avatar Style</label>
-          <div className="grid grid-cols-2 gap-2">
+          <label className="text-sm font-semibold text-foreground md:text-base select-none">Avatar Style</label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
             {AVATAR_STYLES.map((style, index) => (
               <motion.button
                 key={style.value}
+                type="button"
                 onClick={() => setAvatarStyle(style.value)}
+                aria-pressed={avatarStyle === style.value}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{
                   opacity: avatarStyle === style.value ? 1 : 0.7,
@@ -241,15 +317,16 @@ export function InputSection({
                   delay: index * 0.04,
                 }}
                 className={cn(
-                  "flex items-center gap-2 p-3 border transition-all text-left",
+                  "focus-ring min-h-14 rounded-md border p-3 text-left transition-[border-color,background-color,color,box-shadow] duration-200",
+                  "flex min-w-0 items-center gap-2",
                   avatarStyle === style.value
-                    ? `border-white bg-white/10 text-white ${styleGlowColors[style.value] || ""}`
-                    : "border-gray-600 bg-black/50 text-gray-400 hover:border-gray-400 hover:text-gray-200",
+                    ? `border-[var(--accent)] bg-[var(--accent)]/10 text-foreground ${styleGlowColors[style.value] || ""}`
+                    : "border-white/10 bg-black/30 text-muted-foreground hover:border-white/25 hover:text-foreground",
                 )}
               >
                 {styleIcons[style.value] || null}
-                <div className="flex flex-col">
-                  <span className="text-xs md:text-sm font-medium">{style.label}</span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate text-xs font-semibold md:text-sm">{style.label}</span>
                 </div>
               </motion.button>
             ))}
@@ -258,20 +335,23 @@ export function InputSection({
 
         {/* Background & Color Options - Add entrance animation */}
         <motion.div
-          className="grid grid-cols-2 gap-3"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
         >
           <div className="space-y-2">
-            <label className="text-xs md:text-sm font-medium text-gray-300 select-none">Background</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground select-none">Background</label>
             <Select value={background} onValueChange={setBackground}>
-              <SelectTrigger className="w-full !h-9 px-3 bg-black/50 border border-gray-600 text-white text-xs focus:ring-0 focus:ring-offset-0">
-                <SelectValue placeholder="Select..." />
+              <SelectTrigger
+                aria-label="Background"
+                className="focus-ring w-full !h-11 rounded-md border border-white/10 bg-black/35 px-3 text-sm text-foreground"
+              >
+                <SelectValue placeholder="Select…" />
               </SelectTrigger>
-              <SelectContent className="bg-black/95 border-gray-600 text-white">
+              <SelectContent className="rounded-md border-white/10 bg-card text-card-foreground">
                 {BACKGROUND_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                  <SelectItem key={opt.value} value={opt.value} className="text-sm">
                     {opt.label}
                   </SelectItem>
                 ))}
@@ -280,14 +360,17 @@ export function InputSection({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs md:text-sm font-medium text-gray-300 select-none">Color Mood</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground select-none">Color Mood</label>
             <Select value={colorMood} onValueChange={setColorMood}>
-              <SelectTrigger className="w-full !h-9 px-3 bg-black/50 border border-gray-600 text-white text-xs focus:ring-0 focus:ring-offset-0">
-                <SelectValue placeholder="Select..." />
+              <SelectTrigger
+                aria-label="Color Mood"
+                className="focus-ring w-full !h-11 rounded-md border border-white/10 bg-black/35 px-3 text-sm text-foreground"
+              >
+                <SelectValue placeholder="Select…" />
               </SelectTrigger>
-              <SelectContent className="bg-black/95 border-gray-600 text-white">
+              <SelectContent className="rounded-md border-white/10 bg-card text-card-foreground">
                 {COLOR_MOOD_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                  <SelectItem key={opt.value} value={opt.value} className="text-sm">
                     {opt.label}
                   </SelectItem>
                 ))}
@@ -298,31 +381,37 @@ export function InputSection({
 
         {/* Additional Instructions - Add entrance animation */}
         <motion.div
-          className="space-y-2"
+          className="space-y-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
           <div className="flex items-center justify-between select-none">
-            <label className="text-sm md:text-base font-medium text-gray-300">Additional Instructions</label>
+            <label htmlFor="avatar-instructions" className="text-sm font-semibold text-foreground md:text-base">
+              Additional Instructions
+            </label>
             <Button
               onClick={onClearAll}
               disabled={!prompt.trim() && !hasImages}
               variant="outline"
               size="sm"
-              className="h-7 px-2 text-xs bg-transparent border border-gray-600 text-white hover:bg-gray-700 disabled:opacity-50"
+              className="focus-ring h-9 rounded-md border-white/10 bg-transparent px-3 text-xs text-foreground hover:bg-white/10 disabled:opacity-50"
+              aria-label="Clear photo and instructions"
             >
-              <Trash2 className="size-3" />
+              <Trash2 className="size-3" aria-hidden="true" />
             </Button>
           </div>
           <textarea
-            ref={promptTextareaRef}
+            id="avatar-instructions"
+            name="avatar-instructions"
+            ref={promptTextareaRef as React.RefObject<HTMLTextAreaElement>}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPromptPaste}
-            placeholder="e.g., Keep my glasses, slight smile, looking at camera..."
-            className="w-full min-h-[60px] max-h-[100px] p-2 md:p-3 bg-black/50 border border-gray-600 resize-none focus:outline-none focus:border-white text-white text-xs md:text-sm select-text"
+            autoComplete="off"
+            placeholder="e.g., Keep my glasses, slight smile, looking at camera…"
+            className="focus-ring w-full min-h-[96px] max-h-[160px] resize-y rounded-md border border-white/10 bg-black/35 p-3 text-sm text-foreground placeholder:text-muted-foreground select-text"
             style={{ fontSize: "16px" }}
           />
         </motion.div>
@@ -341,7 +430,7 @@ export function InputSection({
           ) : (
             <>
               {!isAuthenticated && (
-                <div className="text-xs text-gray-400 text-center">
+                <div className="text-center text-xs text-muted-foreground" aria-live="polite">
                   <span>
                     {remaining} free {remaining === 1 ? "generation" : "generations"} remaining
                     {remaining === 0 && " (sign in for 3 more)"}
@@ -349,7 +438,7 @@ export function InputSection({
                 </div>
               )}
               {isAuthenticated && (
-                <div className="text-xs text-green-400 text-center">
+                <div className="text-center text-xs text-[var(--studio-cyan)]" aria-live="polite">
                   {remaining % 1 === 0 ? remaining : remaining.toFixed(1)} {remaining === 1 ? "credit" : "credits"} remaining
                 </div>
               )}
@@ -357,6 +446,7 @@ export function InputSection({
           )}
           <motion.div whileHover={canGenerate ? { scale: 1.01, y: -1 } : {}} whileTap={canGenerate ? { scale: 0.98 } : {}} transition={{ duration: 0.15 }}>
             <Button
+              type="button"
               onClick={() => {
                 if (!canGenerate && !isAuthenticated) {
                   onShowAuthModal()
@@ -372,7 +462,7 @@ export function InputSection({
                 !canGenerate && !isAuthenticated && "opacity-75 cursor-pointer",
               )}
             >
-              {isConvertingHeic ? "Converting..." : isLoading || usageLoading ? "Generating..." : "Transform Photo"}
+              {isConvertingHeic ? "Converting…" : isLoading || usageLoading ? "Generating…" : "Transform Photo"}
             </Button>
           </motion.div>
         </motion.div>

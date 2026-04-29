@@ -51,12 +51,17 @@ export function PartialRegenerationModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">What should change?</label>
+            <label htmlFor="partial-regeneration-instructions" className="text-sm font-medium text-foreground">
+              What should change?
+            </label>
             <textarea
+              id="partial-regeneration-instructions"
+              name="partial-regeneration-instructions"
               value={instructions}
               onChange={(event) => setInstructions(event.target.value)}
-              placeholder="e.g., warm lighting, blurred office background, subtle vignette"
-              className="w-full min-h-[110px] p-3 bg-black/50 border border-gray-600 resize-none focus:outline-none focus:border-white text-white text-sm"
+              autoComplete="off"
+              placeholder="e.g., warm lighting, blurred office background, subtle vignette…"
+              className="focus-ring w-full min-h-[110px] p-3 bg-black/50 border border-gray-600 resize-none text-white text-sm rounded-md"
               style={{ fontSize: "16px" }}
               autoFocus
             />
@@ -69,7 +74,7 @@ export function PartialRegenerationModal({
             <Button
               type="button"
               variant="outline"
-              className="bg-transparent border-border text-foreground hover:bg-accent"
+              className="focus-ring bg-transparent border-border text-foreground hover:bg-accent"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -77,10 +82,10 @@ export function PartialRegenerationModal({
             </Button>
             <Button
               type="submit"
-              className="bg-white text-black hover:bg-gray-200"
+              className="focus-ring bg-white text-black hover:bg-gray-200"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Regenerating..." : "Regenerate (0.5 credit)"}
+              {isSubmitting ? "Regenerating…" : "Regenerate (0.5 credit)"}
             </Button>
           </div>
         </form>

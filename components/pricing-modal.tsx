@@ -57,7 +57,7 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
     // Validate email for unauthenticated users
     if (!isAuthenticated) {
       if (!email || !email.includes("@")) {
-        setError("Please enter a valid email address")
+        setError("Enter a valid email address to continue.")
         setIsLoading(false)
         return
       }
@@ -117,7 +117,7 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
 
         <div className="flex flex-col gap-4 sm:gap-6 mt-4 sm:mt-6">
           {error && (
-            <div className="bg-red-900/20 border border-red-700 text-red-400 p-3 rounded text-sm">
+            <div id="pricing-error" className="bg-red-900/20 border border-red-700 text-red-400 p-3 rounded text-sm" role="alert">
               {error}
             </div>
           )}
@@ -127,10 +127,9 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
             {PRICING_PLANS.map((plan) => (
               <Card
                 key={plan.amount}
-                className={`bg-black/40 border-gray-700 backdrop-blur-sm cursor-pointer transition-all hover:border-gray-600 ${
+                className={`bg-black/40 border-gray-700 backdrop-blur-sm transition-[border-color,box-shadow] hover:border-gray-600 ${
                   selectedPlan?.amount === plan.amount ? "border-green-500 ring-2 ring-green-500/50" : ""
                 }`}
-                onClick={() => handlePlanSelect(plan)}
               >
                 <CardHeader className="pb-3 sm:pb-6">
                   <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-white">
@@ -144,11 +143,30 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
                       {plan.generations} Generations
                     </div>
                     <div className="text-xs sm:text-sm text-gray-400">{plan.description}</div>
+                    {!selectedPlan || selectedPlan.amount !== plan.amount ? (
+                      <Button
+                        type="button"
+                        onClick={() => handlePlanSelect(plan)}
+                        className="focus-ring w-full h-10 bg-white text-black hover:bg-gray-200 font-semibold mt-4 cursor-pointer"
+                      >
+                        Select {plan.label}
+                      </Button>
+                    ) : null}
                     {selectedPlan?.amount === plan.amount && showEmailInput && !isAuthenticated && (
                       <div className="mt-4 space-y-2">
+                        <label htmlFor="payment-email" className="text-sm font-medium text-white">
+                          Email Address
+                        </label>
                         <Input
+                          id="payment-email"
+                          name="email"
                           type="email"
-                          placeholder="Enter your email"
+                          inputMode="email"
+                          autoComplete="email"
+                          spellCheck={false}
+                          aria-invalid={error ? true : undefined}
+                          aria-describedby={error ? "pricing-error" : undefined}
+                          placeholder="name@example.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="bg-gray-800 border-gray-600 text-white"
@@ -159,21 +177,25 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
                           }}
                         />
                         <Button
+                          type="button"
                           onClick={() => handlePay(plan)}
                           disabled={isLoading || !email}
-                          className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
+                          className="focus-ring w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold cursor-pointer"
+                          aria-busy={isLoading}
                         >
-                          {isLoading ? "Processing..." : "Pay via M-Pesa"}
+                          {isLoading ? "Processing…" : "Pay via M-Pesa"}
                         </Button>
                       </div>
                     )}
                     {selectedPlan?.amount === plan.amount && (!showEmailInput || isAuthenticated) && (
                       <Button
+                        type="button"
                         onClick={() => handlePay(plan)}
                         disabled={isLoading}
-                        className="w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold mt-4 cursor-pointer"
+                        className="focus-ring w-full h-10 bg-green-600 hover:bg-green-700 text-white font-semibold mt-4 cursor-pointer"
+                        aria-busy={isLoading}
                       >
-                        {isLoading ? "Redirecting to checkout..." : "Pay via M-Pesa"}
+                        {isLoading ? "Redirecting to Checkout…" : "Pay via M-Pesa"}
                       </Button>
                     )}
                   </div>
@@ -184,12 +206,12 @@ export function PricingModal({ isOpen, onClose, onSuccess }: PricingModalProps) 
 
           {!isAuthenticated && !showEmailInput && (
             <div className="text-xs sm:text-sm text-gray-400 text-center">
-              You'll need to provide your email to complete the payment
+              You’ll need to provide your email to complete the payment.
             </div>
           )}
 
           <div className="text-xs sm:text-sm text-gray-500 text-center pt-3 sm:pt-4 border-t border-gray-700">
-            You'll be redirected to the secure Paystack checkout page to complete your M-Pesa payment
+            You’ll be redirected to the secure Paystack checkout page to complete your M-Pesa payment.
           </div>
         </div>
       </DialogContent>

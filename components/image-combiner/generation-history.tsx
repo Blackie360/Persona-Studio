@@ -58,59 +58,44 @@ export function GenerationHistory({
 
   return (
     <div className={cn("flex flex-col w-full", className)}>
-      {!compact && <h4 className="text-xs md:text-sm font-medium text-gray-400 mb-1">History</h4>}
+      {!compact && (
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground md:text-sm">Reveal Roll</h4>
+          <p className="hidden text-xs text-muted-foreground sm:block">Compare, remix, share.</p>
+        </div>
+      )}
       <div
         className={cn(
-          "w-full flex gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent h-20 md:h-28 items-end",
+          "studio-panel-soft w-full flex gap-2 overflow-x-auto rounded-lg p-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent min-h-24 md:min-h-32 items-center",
           compact ? "pb-1" : "pb-2",
         )}
       >
         {isLoading ? (
-          <div className="flex gap-1 items-end w-full h-20 md:h-28">
+          <div className="flex h-20 w-full items-center gap-2 md:h-28">
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton
                 key={i}
-                className="w-18 h-18 md:w-24 md:h-24 bg-gray-800/50 border border-gray-700"
+                className="size-20 rounded-md border border-white/10 bg-gray-800/50 md:size-24"
               />
             ))}
           </div>
         ) : generations.length === 0 ? (
-          <div className="flex items-center justify-center w-full h-20 md:h-28 text-gray-500 text-xs md:text-sm">
-            No generations yet
+          <div className="flex min-h-20 w-full items-center justify-center text-xs text-muted-foreground md:text-sm">
+            No Generations Yet
           </div>
         ) : (
           <>
             {generations.map((gen, index) => (
               <div
                 key={gen.id}
-                onClick={() => {
-                  onSelect(gen.id)
-                  // Open in fullscreen modal if generation is complete and has image
-                  if (gen.status === "complete" && gen.imageUrl && onImageClick) {
-                    onImageClick(gen.imageUrl)
-                  }
-                }}
                 className={cn(
-                  "relative flex-shrink-0 w-18 h-18 md:w-24 md:h-24 overflow-hidden transition-all cursor-pointer group",
+                  "group relative size-20 flex-shrink-0 overflow-hidden rounded-md transition-[border-color,opacity,transform] duration-200 md:size-24",
                   selectedId === gen.id
-                    ? "border-2 border-white opacity-100"
-                    : "border border-gray-600 hover:border-gray-500 opacity-60 hover:opacity-100",
+                    ? "border-2 border-[var(--accent)] opacity-100"
+                    : "border border-white/15 opacity-70 hover:border-white/35 hover:opacity-100",
                   index === 0 && "animate-in fade-in-0 slide-in-from-left-4 duration-500",
                   deletingId === gen.id && "opacity-50 pointer-events-none",
                 )}
-                role="button"
-                tabIndex={0}
-                aria-label={`Generation ${index + 1}`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    onSelect(gen.id)
-                    // Open in fullscreen modal if generation is complete and has image
-                    if (gen.status === "complete" && gen.imageUrl && onImageClick) {
-                      onImageClick(gen.imageUrl)
-                    }
-                  }
-                }}
               >
                 {gen.status === "loading" ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -118,18 +103,24 @@ export function GenerationHistory({
                       {Math.round(gen.progress)}%
                     </span>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation()
                         onCancel(gen.id)
                       }}
-                      className="mt-2 text-[10px] px-2 py-0.5 bg-white/10 hover:bg-white text-white hover:text-black transition-all"
+                      className="focus-ring mt-2 rounded border border-white/10 bg-white/10 px-2 py-1 text-[10px] text-white transition-[background-color,color] duration-200 hover:bg-white hover:text-black"
                       aria-label="Cancel generation"
                     >
                       Cancel
                     </button>
                   </div>
                 ) : gen.status === "error" ? (
-                  <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => onSelect(gen.id)}
+                    className="focus-ring absolute inset-0 flex items-center justify-center bg-gray-900/50"
+                    aria-label={`Select failed generation ${index + 1}`}
+                  >
                     <svg
                       className="w-6 h-6 text-gray-400"
                       fill="none"
@@ -140,53 +131,19 @@ export function GenerationHistory({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span className="sr-only">Generation failed</span>
-                    {onDelete && (
-                      <button
-                        onClick={(e) => handleDelete(e, gen.id)}
-                        disabled={deletingId === gen.id}
-                        className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-white text-white hover:text-black opacity-100 transition-all disabled:opacity-50 z-10"
-                        aria-label="Delete generation"
-                      >
-                        {deletingId === gen.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                  </div>
+                  </button>
                 ) : (
-                  <>
-                    {onDelete && (
-                      <button
-                        onClick={(e) => handleDelete(e, gen.id)}
-                        disabled={deletingId === gen.id}
-                        className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-white text-white hover:text-black opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50 z-10"
-                        aria-label="Delete generation"
-                      >
-                        {deletingId === gen.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelect(gen.id)
+                      if (gen.imageUrl && onImageClick) {
+                        onImageClick(gen.imageUrl)
+                      }
+                    }}
+                    className="focus-ring absolute inset-0"
+                    aria-label={`Open generation ${index + 1}`}
+                  >
                     <Image
                       src={gen.imageUrl!}
                       alt={gen.prompt || "Generated image"}
@@ -202,15 +159,70 @@ export function GenerationHistory({
                       unoptimized={gen.imageUrl?.includes("blob:") ?? false}
                     />
                     {!loadedImages.has(gen.id) && <div className="absolute inset-0 bg-gray-800 animate-pulse" />}
+                  </button>
+                )}
+
+                {gen.status === "error" ? (
+                  <>
+                    {onDelete && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, gen.id)}
+                        disabled={deletingId === gen.id}
+                        className="focus-ring absolute right-1 top-1 z-10 flex size-7 items-center justify-center rounded bg-black/75 text-white opacity-100 transition-[background-color,color] duration-200 hover:bg-white hover:text-black disabled:opacity-50"
+                        aria-label="Delete generation"
+                      >
+                        {deletingId === gen.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {gen.status !== "loading" && onDelete && (
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(e, gen.id)}
+                        disabled={deletingId === gen.id}
+                        className="focus-ring absolute right-1 top-1 z-10 flex size-7 items-center justify-center rounded bg-black/75 text-white opacity-100 transition-[background-color,color] duration-200 hover:bg-white hover:text-black disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
+                        aria-label="Delete generation"
+                      >
+                        {deletingId === gen.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
             ))}
             {hasMore && onLoadMore && (
               <button
+                type="button"
                 onClick={onLoadMore}
                 disabled={isLoadingMore}
-                className="flex-shrink-0 w-18 h-18 md:w-24 md:h-24 border border-gray-600 hover:border-white bg-black/30 hover:bg-black/50 transition-all flex items-center justify-center text-xs text-gray-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="focus-ring flex size-20 flex-shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/30 text-xs text-muted-foreground transition-[background-color,border-color,color] duration-200 hover:border-white/35 hover:bg-black/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 md:size-24"
                 aria-label="Load more generations"
               >
                 {isLoadingMore ? (
